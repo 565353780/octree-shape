@@ -1,6 +1,15 @@
 # compiled
 __pycache__
+build
 .DS_Store
+.cache
+*.egg-info
+*.so
+compile_commands.json
+tmp
+dist
+.DS_Store
+
 
 ## output
 logs
