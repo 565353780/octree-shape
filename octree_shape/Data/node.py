@@ -14,8 +14,25 @@ class Node:
         self.child_dict = {}
         return
 
+    def setId(self, id: str) -> bool:
+        self.id = id
+        return True
+
     def setChildState(self, child_state: np.uint8) -> bool:
         self.child_state = np.uint8(child_state)
+        return True
+
+    def set(self, id: str, child_state: np.uint8) -> bool:
+        if not self.setId(id):
+            print("[ERROR][Node::set]")
+            print("\t setId failed!")
+            return False
+
+        if not self.setChildState(child_state):
+            print("[ERROR][Node::set]")
+            print("\t setChildState failed!")
+            return False
+
         return True
 
     def updateChildState(self, child_idx: int, is_child_exist: bool) -> bool:
@@ -42,6 +59,14 @@ class Node:
         self.child_dict.pop(child_idx)
 
         return True
+
+    @property
+    def depth(self) -> int:
+        return len(self.id)
+
+    @property
+    def isLeaf(self) -> bool:
+        return not self.child_dict
 
     def toChildIdxs(self) -> np.ndarray:
         child_idxs = []
