@@ -64,6 +64,7 @@ def toLeafO3DAABBMesh(
     if node.isLeaf:
         curr_leaf_aabb_mesh = toO3DAABBMesh(*node.toAABB(), color)
         leaf_aabb_mesh += curr_leaf_aabb_mesh
+        return leaf_aabb_mesh
 
     for child_node in node.child_dict.values():
         leaf_aabb_mesh += toLeafO3DAABBMesh(child_node, color)
