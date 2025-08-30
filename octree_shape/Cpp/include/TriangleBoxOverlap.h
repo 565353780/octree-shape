@@ -31,7 +31,8 @@
   if (x2 > max)                                                                \
     max = x2;
 
-int planeBoxOverlap(float normal[3], float vert[3], float maxbox[3]); // -NJMP-
+int planeBoxOverlap(const float normal[3], const float vert[3],
+                    const float maxbox[3]); // -NJMP-
 
 /*======================== X-tests ========================*/
 
@@ -123,5 +124,5 @@ int planeBoxOverlap(float normal[3], float vert[3], float maxbox[3]); // -NJMP-
   if (min > rad || max < -rad)                                                 \
     return 0;
 
-int triBoxOverlap(float boxcenter[3], float boxhalfsize[3],
-                  float triverts[3][3]);
+int triBoxOverlap(const float boxcenter[3], const float boxhalfsize[3],
+                  const float triverts[3][3]);

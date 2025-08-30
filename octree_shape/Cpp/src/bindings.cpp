@@ -1,3 +1,5 @@
+#include "BVHTree.h"
+#include "MeshBoxOverlap.h"
 #include "TriangleBoxOverlap.h"
 #include <pybind11/numpy.h> // 支持 NumPy 数组
 #include <pybind11/pybind11.h>
@@ -33,10 +35,64 @@ int triBoxOverlap_wrapper(py::array_t<float> boxcenter_array,
   return triBoxOverlap(boxcenter_ptr, boxhalfsize_ptr, triverts_ptr);
 }
 
+bool any_intersection_wrapper(py::array_t<float> box_center,
+                              py::array_t<float> box_half_size,
+                              py::array_t<float> triangles_array) {
+
+  // 验证和转换 box_center
+  if (box_center.size() != 3) {
+    throw std::runtime_error("box_center must have exactly 3 elements");
+  }
+  float boxCenter[3];
+  auto box_center_ptr = box_center.unchecked<1>();
+  for (int i = 0; i < 3; ++i) {
+    boxCenter[i] = box_center_ptr(i);
+  }
+
+  // 验证和转换 box_half_size
+  if (box_half_size.size() != 3) {
+    throw std::runtime_error("box_half_size must have exactly 3 elements");
+  }
+  float boxHalfSize[3];
+  auto box_half_size_ptr = box_half_size.unchecked<1>();
+  for (int i = 0; i < 3; ++i) {
+    boxHalfSize[i] = box_half_size_ptr(i);
+  }
+
+  // 验证和转换 triangles_array
+  if (triangles_array.ndim() != 2 || triangles_array.shape(1) != 9) {
+    throw std::runtime_error(
+        "triangles_array must be a 2D array with shape (N, 9)");
+  }
+
+  auto triangles_ptr = triangles_array.unchecked<2>();
+  int num_triangles = triangles_ptr.shape(0);
+
+  // 将 NumPy 数组转换为 std::vector<std::vector<float>>
+  std::vector<Triangle> triangles(num_triangles);
+  for (int i = 0; i < num_triangles; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      triangles[i].v0[j] = triangles_ptr(i, j);
+    }
+    for (int j = 3; j < 6; ++j) {
+      triangles[i].v1[j - 3] = triangles_ptr(i, j);
+    }
+    for (int j = 6; j < 9; ++j) {
+      triangles[i].v2[j - 6] = triangles_ptr(i, j);
+    }
+  }
+
+  // 调用实际的函数
+  return anyIntersectionSerial(boxCenter, boxHalfSize, triangles);
+}
+
 PYBIND11_MODULE(octree_cpp, m) {
   m.doc() = "pybind11 octree cpp plugin";
 
   m.def("triBoxOverlap", &triBoxOverlap_wrapper,
         "Check if a triangle overlaps an AABB", py::arg("boxcenter"),
         py::arg("boxhalfsize"), py::arg("triverts"));
+  m.def("any_intersection", &any_intersection_wrapper,
+        "Check if any triangle intersects with the AABB", py::arg("box_center"),
+        py::arg("box_half_size"), py::arg("triangles"));
 }
