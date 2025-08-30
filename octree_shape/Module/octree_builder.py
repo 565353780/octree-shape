@@ -1,4 +1,5 @@
 import os
+import torch
 import trimesh
 from typing import Union
 from collections import deque
@@ -14,7 +15,12 @@ class OctreeBuilder(object):
         self,
         mesh_file_path: Union[str, None] = None,
         depth_max: int = 10,
+        dtype = torch.float32,
+        device: str = 'cpu',
     ) -> None:
+        self.dtype = dtype
+        self.device = device
+
         self.node = Node()
 
         if mesh_file_path is not None:
@@ -35,8 +41,8 @@ class OctreeBuilder(object):
         mesh = trimesh.load(mesh_file_path)
 
         normalized_mesh = normalizeMesh(mesh)
-        vertices = normalized_mesh.vertices
-        triangles = normalized_mesh.faces
+        vertices = torch.from_numpy(normalized_mesh.vertices).to(self.device, dtype=self.dtype)
+        triangles = torch.from_numpy(normalized_mesh.faces).to(self.device, dtype=torch.int64)
 
         queue = deque([self.node])
         while queue:
@@ -44,9 +50,9 @@ class OctreeBuilder(object):
             print("start solve node:", node.id, "with depth:", node.depth)
 
             for child_id in "01234567":
-                aabb_min, aabb_max = Node(node.id + child_id).toAABB()
+                aabb = Node(node.id + child_id).toAABBTensor().to(self.device, dtype=self.dtype)
 
-                if isMeshIntersectAABB(vertices, triangles, aabb_min, aabb_max):
+                if isMeshIntersectAABB(vertices, triangles, aabb):
                     node.updateChildState(int(child_id), True)
 
                     if node.depth < depth_max - 1:

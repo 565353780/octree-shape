@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from typing import Tuple
 from collections import deque
@@ -101,6 +102,12 @@ class Node:
             else:
                 aabb_min[2] += current_half_length[2]
         return aabb_min, aabb_max
+
+    def toAABBTensor(self, scale: float = 1.0) -> torch.Tensor:
+        aabb_min, aabb_max = self.toAABB(scale)
+
+        aabb_tensor = torch.from_numpy(np.hstack([aabb_min, aabb_max]))
+        return aabb_tensor
 
     def addChild(self, child_idx: int):
         if not self.updateChildState(child_idx, True):
