@@ -1,5 +1,10 @@
-import trimesh
+import torch
 import numpy as np
+from tqdm import trange
+
+import octree_cpp
+
+from octree_shape.Method.sat import aabb_tri_intersect
 
 
 def isAABBIntersect(
@@ -83,20 +88,112 @@ def isTriangleIntersectAABBFast(
     if np.any(inside):
         return True
 
-    # 精确三角形-AABB 相交检测（使用 trimesh）
-    return isTriangleIntersectAABB(triangle, aabb_min, aabb_max)
+    # aabb: (B,6)  [min,max]   tri: (B,3,3)
+    tri_min = tri.min(dim=1)[0]          # (B,3)
+    tri_max = tri.max(dim=1)[0]          # (B,3)
+
+# 快速不相交判定：三角形包围盒与 AABB 无重叠
+    aabb_min = aabb[:, :3]
+    aabb_max = aabb[:, 3:]
+    mask = (tri_min <= aabb_max).all(-1) & (tri_max >= aabb_min).all(-1)
+
+# 只在 mask=True 的样本上跑 SAT
+    sat_result = torch.zeros(B, dtype=torch.bool, device=aabb.device)
+    if mask.any():
+        sat_result[mask] = aabb_tri_intersect(aabb[mask], tri[mask])
+
+    aabb = np.hstack([aabb_min, aabb_max])
+    triangle_tensor = torch.from_numpy(triangle).unsqueeze(0).to(torch.float32)
+    aabb_tensor = torch.from_numpy(aabb).unsqueeze(0).to(torch.float32)
+
+    for _ in trange(1000):
+        aabb_tri_intersect(aabb_tensor, triangle_tensor)
+
+    return bool(aabb_tri_intersect(aabb_tensor, triangle_tensor)[0].item())
 
 
 def isMeshIntersectAABB(
     vertices: np.ndarray,
-    triangle_idxs: np.ndarray,
+    triangles: np.ndarray,
     aabb_min: np.ndarray,
     aabb_max: np.ndarray,
 ) -> bool:
-    for triangle_idx in triangle_idxs:
-        triangle = vertices[triangle_idx]
+    vertices_tensor = torch.from_numpy(vertices).to(torch.float32)
+    triangles_tensor = torch.from_numpy(triangles).to(torch.int64)
+    aabb_tensor = torch.from_numpy(np.hstack([aabb_min, aabb_max])).to(torch.float32)
 
-        if isTriangleIntersectAABBFast(triangle, aabb_min, aabb_max):
-            return True
+    return is_mesh_aabb_any_intersect(vertices_tensor, triangles_tensor, aabb_tensor)
 
-    return False
+@torch.no_grad()
+def is_mesh_aabb_any_intersect(
+        vertices: torch.Tensor,          # (V, 3)
+        triangles: torch.Tensor,         # (T, 3)  int64
+        aabb: torch.Tensor               # (6,)    [xmin,ymin,zmin,xmax,ymax,zmax]
+    ) -> bool:
+    """
+    只要网格中任意一个三角形与给定 AABB 相交就返回 True。
+    支持 GPU；全部在 PyTorch 内完成。
+    """
+    device = vertices.device
+    dtype  = vertices.dtype
+
+    # ---------- 1. 把 AABB 变成 center + half_size ----------
+    box_min = aabb[:3]
+    box_max = aabb[3:]
+    box_center = (box_min + box_max) * 0.5
+    box_half   = (box_max - box_min) * 0.5
+
+    # ---------- 2. 取出所有三角形顶点 ----------
+    tri = vertices[triangles]          # (T, 3, 3)
+
+    # ---------- 3. 快速 AABB 剔除 ----------
+    tri_min = tri.min(dim=1)[0]        # (T, 3)
+    tri_max = tri.max(dim=1)[0]
+
+    overlap_mask = (tri_min <= box_max) & (tri_max >= box_min)  # (T, 3) -> (T,)
+    overlap_mask = overlap_mask.all(dim=1)
+    if not overlap_mask.any():
+        return False
+    tri = tri[overlap_mask]            # 只保留候选
+
+    # ---------- 4. 搬到局部坐标 ----------
+    tri = tri - box_center             # (K, 3, 3)
+
+    # ---------- 5. 13 轴 SAT ----------
+    v0, v1, v2 = tri.unbind(dim=1)     # 3×(K, 3)
+    e0, e1, e2 = v1 - v0, v2 - v1, v0 - v2
+
+    # 构造 13 条轴 (K, 13, 3)
+    axes = torch.empty(tri.shape[0], 13, 3, device=device, dtype=dtype)
+    axes[:, 0] = torch.tensor([1.,0.,0.], device=device)
+    axes[:, 1] = torch.tensor([0.,1.,0.], device=device)
+    axes[:, 2] = torch.tensor([0.,0.,1.], device=device)
+    n = torch.cross(e0, e1, dim=1)
+    axes[:, 3] = n
+    # 9 个叉积
+    axes[:, 4]  = torch.cross(e0, axes[:, 0])
+    axes[:, 5]  = torch.cross(e0, axes[:, 1])
+    axes[:, 6]  = torch.cross(e0, axes[:, 2])
+    axes[:, 7]  = torch.cross(e1, axes[:, 0])
+    axes[:, 8]  = torch.cross(e1, axes[:, 1])
+    axes[:, 9]  = torch.cross(e1, axes[:, 2])
+    axes[:, 10] = torch.cross(e2, axes[:, 0])
+    axes[:, 11] = torch.cross(e2, axes[:, 1])
+    axes[:, 12] = torch.cross(e2, axes[:, 2])
+
+    axes = torch.nan_to_num(axes, nan=0.0)
+    norm = torch.norm(axes, dim=2, keepdim=True).clamp(min=1e-8)
+    axes = axes / norm
+
+    # 投影半径
+    box_rad = torch.sum(box_half.abs() * axes.abs(), dim=2)   # (K, 13)
+
+    # 三角形投影
+    pts = torch.stack([v0, v1, v2], dim=1)                   # (K, 3, 3)
+    proj = torch.einsum("kni,kai->kna", pts, axes)             # (K, 3, 13)
+    tri_min = proj.min(dim=1)[0]                             # (K, 13)
+    tri_max = proj.max(dim=1)[0]
+
+    # 重叠检查
+    overlap = (tri_max >= -box_rad) & (tri_min <= box_rad)   # (K, 13)
+    return bool(overlap.all(dim=1).any())

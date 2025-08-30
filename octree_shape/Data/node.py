@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple
+from collections import deque
 
 
 class Node:
@@ -116,3 +117,23 @@ class Node:
             return False
 
         return True
+
+    def getShapeValue(self) -> np.ndarray:
+        shape_value = []
+
+        queue = deque([self])
+        while queue:
+            node = queue.popleft()
+            if node.isLeaf:
+                continue
+
+            shape_value.append(node.child_state)
+
+            for child_id in range(8):
+                if child_id not in node.child_dict.keys():
+                    continue
+
+                queue.append(node.child_dict[child_id])
+
+        shape_value = np.array(shape_value, dtype=np.uint8)
+        return shape_value

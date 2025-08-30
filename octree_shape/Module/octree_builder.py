@@ -36,7 +36,7 @@ class OctreeBuilder(object):
 
         normalized_mesh = normalizeMesh(mesh)
         vertices = normalized_mesh.vertices
-        triangle_idxs = normalized_mesh.faces
+        triangles = normalized_mesh.faces
 
         queue = deque([self.node])
         while queue:
@@ -46,7 +46,7 @@ class OctreeBuilder(object):
             for child_id in "01234567":
                 aabb_min, aabb_max = Node(node.id + child_id).toAABB()
 
-                if isMeshIntersectAABB(vertices, triangle_idxs, aabb_min, aabb_max):
+                if isMeshIntersectAABB(vertices, triangles, aabb_min, aabb_max):
                     node.updateChildState(int(child_id), True)
 
                     if node.depth < depth_max - 1:
