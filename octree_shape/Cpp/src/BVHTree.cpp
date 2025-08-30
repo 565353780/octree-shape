@@ -1,5 +1,6 @@
 #include "BVHTree.h"
 #include "TriangleBoxOverlap.h"
+#include <algorithm>
 #include <queue>
 
 AABB::AABB() {

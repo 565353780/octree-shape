@@ -15,11 +15,11 @@ class OctreeBuilder(object):
         self,
         mesh_file_path: Union[str, None] = None,
         depth_max: int = 10,
-        dtype = torch.float32,
-        device: str = 'cpu',
+        device: str = "cpu",
+        dtype=torch.float64,
     ) -> None:
-        self.dtype = dtype
         self.device = device
+        self.dtype = dtype
 
         self.node = Node()
 
@@ -41,8 +41,12 @@ class OctreeBuilder(object):
         mesh = trimesh.load(mesh_file_path)
 
         normalized_mesh = normalizeMesh(mesh)
-        vertices = torch.from_numpy(normalized_mesh.vertices).to(self.device, dtype=self.dtype)
-        triangles = torch.from_numpy(normalized_mesh.faces).to(self.device, dtype=torch.int64)
+        vertices = torch.from_numpy(normalized_mesh.vertices).to(
+            self.device, dtype=self.dtype
+        )
+        triangles = torch.from_numpy(normalized_mesh.faces).to(
+            self.device, dtype=torch.int64
+        )
 
         queue = deque([self.node])
         while queue:
@@ -50,7 +54,11 @@ class OctreeBuilder(object):
             print("start solve node:", node.id, "with depth:", node.depth)
 
             for child_id in "01234567":
-                aabb = Node(node.id + child_id).toAABBTensor().to(self.device, dtype=self.dtype)
+                aabb = (
+                    Node(node.id + child_id)
+                    .toAABBTensor()
+                    .to(self.device, dtype=self.dtype)
+                )
 
                 if isMeshIntersectAABB(vertices, triangles, aabb):
                     node.updateChildState(int(child_id), True)
