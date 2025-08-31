@@ -1,6 +1,7 @@
 #include "MeshBoxOverlap.h"
 #include "TriangleBoxOverlap.h"
 #include "node.h"
+#include "svo.h"
 #include <pybind11/chrono.h>
 #include <pybind11/complex.h>
 #include <pybind11/functional.h>
@@ -33,11 +34,9 @@ PYBIND11_MODULE(octree_cpp, m) {
       .def("addChild", &Node::addChild)
       .def("removeChild", &Node::removeChild)
       .def("updateOverlaps", &Node::updateOverlaps, py::arg("vertices"),
-           py::arg("triangles"), py::arg("device") = "cpu",
-           py::arg("dtype") = torch::kFloat64)
+           py::arg("triangles"), py::arg("device") = "cpu")
       .def("updateChilds", &Node::updateChilds, py::arg("vertices"),
-           py::arg("triangles"), py::arg("device") = "cpu",
-           py::arg("dtype") = torch::kFloat64)
+           py::arg("triangles"), py::arg("device") = "cpu")
 
       // Getters / Properties
       .def("depth", &Node::depth)
@@ -53,4 +52,11 @@ PYBIND11_MODULE(octree_cpp, m) {
       .def_readwrite("child_state", &Node::child_state)
       .def_readwrite("child_dict", &Node::child_dict)
       .def_readwrite("overlap_triangles", &Node::overlap_triangles);
+
+  py::class_<SVO>(m, "SVO")
+      .def(py::init<int, const std::string &>(), py::arg("depth_max") = 10,
+           py::arg("device") = "cpu")
+      .def("reset", &SVO::reset)
+      .def("loadMesh", &SVO::loadMesh)
+      .def_readwrite("root", &SVO::root);
 }

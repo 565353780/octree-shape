@@ -29,13 +29,11 @@ public:
   void removeChild(int child_idx);
   void updateOverlaps(const torch::Tensor &vertices,
                       const torch::Tensor &triangles,
-                      const std::string &device = "cpu",
-                      torch::Dtype dtype = torch::kFloat64);
+                      const std::string &device = "cpu");
 
   void updateChilds(const torch::Tensor &vertices,
                     const torch::Tensor &triangles,
-                    const std::string &device = "cpu",
-                    torch::Dtype dtype = torch::kFloat64);
+                    const std::string &device = "cpu");
 
   // Public members (tensors only)
   torch::Tensor overlap_triangles;

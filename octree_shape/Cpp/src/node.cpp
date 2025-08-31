@@ -99,19 +99,20 @@ void Node::removeChild(int child_idx) { updateChildState(child_idx, false); }
 
 void Node::updateOverlaps(const torch::Tensor &vertices,
                           const torch::Tensor &triangles,
-                          const std::string &device, torch::Dtype dtype) {
-  torch::Tensor aabb = toAABB().to(torch::Device(device), dtype);
+                          const std::string &device) {
+  torch::Tensor aabb = toAABB().to(torch::Device(device), torch::kFloat64);
   overlap_triangles = toMeshBoxOverlap(vertices, triangles, aabb);
 }
 
 void Node::updateChilds(const torch::Tensor &vertices,
                         const torch::Tensor &triangles,
-                        const std::string &device, torch::Dtype dtype) {
+                        const std::string &device) {
   auto valid_triangles = triangles.index_select(0, overlap_triangles);
 
   for (int child_id = 0; child_id < 8; ++child_id) {
     Node child_node(id + std::to_string(child_id));
-    torch::Tensor aabb = child_node.toAABB().to(torch::Device(device), dtype);
+    torch::Tensor aabb =
+        child_node.toAABB().to(torch::Device(device), torch::kFloat64);
 
     torch::Tensor overlap = toMeshBoxOverlap(vertices, valid_triangles, aabb);
 

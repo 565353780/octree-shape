@@ -17,36 +17,48 @@ def toO3DAABB(
 
     return o3d_aabb
 
+
 def toO3DAABBMesh(
     aabb_min: np.ndarray,
     aabb_max: np.ndarray,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
 ) -> o3d.geometry.TriangleMesh:
-    vertices = np.array([
-        [aabb_min[0], aabb_min[1], aabb_min[2]],  # 0
-        [aabb_max[0], aabb_min[1], aabb_min[2]],  # 1
-        [aabb_max[0], aabb_max[1], aabb_min[2]],  # 2
-        [aabb_min[0], aabb_max[1], aabb_min[2]],  # 3
-        [aabb_min[0], aabb_min[1], aabb_max[2]],  # 4
-        [aabb_max[0], aabb_min[1], aabb_max[2]],  # 5
-        [aabb_max[0], aabb_max[1], aabb_max[2]],  # 6
-        [aabb_min[0], aabb_max[1], aabb_max[2]]   # 7
-    ])
+    vertices = np.array(
+        [
+            [aabb_min[0], aabb_min[1], aabb_min[2]],  # 0
+            [aabb_max[0], aabb_min[1], aabb_min[2]],  # 1
+            [aabb_max[0], aabb_max[1], aabb_min[2]],  # 2
+            [aabb_min[0], aabb_max[1], aabb_min[2]],  # 3
+            [aabb_min[0], aabb_min[1], aabb_max[2]],  # 4
+            [aabb_max[0], aabb_min[1], aabb_max[2]],  # 5
+            [aabb_max[0], aabb_max[1], aabb_max[2]],  # 6
+            [aabb_min[0], aabb_max[1], aabb_max[2]],  # 7
+        ]
+    )
 
-    triangles = np.array([
-        # 底面 z=min
-        [0, 2, 1], [0, 3, 2],
-        # 顶面 z=max
-        [4, 5, 6], [4, 6, 7],
-        # 前面 y=min
-        [0, 1, 5], [0, 5, 4],
-        # 后面 y=max
-        [2, 3, 7], [2, 7, 6],
-        # 左面 x=min
-        [0, 4, 7], [0, 7, 3],
-        # 右面 x=max
-        [1, 2, 6], [1, 6, 5]
-    ], dtype=np.int32)
+    triangles = np.array(
+        [
+            # 底面 z=min
+            [0, 2, 1],
+            [0, 3, 2],
+            # 顶面 z=max
+            [4, 5, 6],
+            [4, 6, 7],
+            # 前面 y=min
+            [0, 1, 5],
+            [0, 5, 4],
+            # 后面 y=max
+            [2, 3, 7],
+            [2, 7, 6],
+            # 左面 x=min
+            [0, 4, 7],
+            [0, 7, 3],
+            # 右面 x=max
+            [1, 2, 6],
+            [1, 6, 5],
+        ],
+        dtype=np.int32,
+    )
 
     mesh = o3d.geometry.TriangleMesh()
     mesh.vertices = o3d.utility.Vector3dVector(vertices)
@@ -55,14 +67,16 @@ def toO3DAABBMesh(
     mesh.compute_vertex_normals()
     return mesh
 
+
 def toLeafO3DAABBMesh(
     node: Node,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
 ) -> o3d.geometry.TriangleMesh:
     leaf_aabb_mesh = o3d.geometry.TriangleMesh()
 
-    if node.isLeaf:
-        curr_leaf_aabb_mesh = toO3DAABBMesh(*node.toAABB(), color)
+    if node.isLeaf():
+        aabb = node.toAABB(1.0).cpu().numpy()
+        curr_leaf_aabb_mesh = toO3DAABBMesh(aabb[:3], aabb[3:], color)
         leaf_aabb_mesh += curr_leaf_aabb_mesh
         return leaf_aabb_mesh
 
