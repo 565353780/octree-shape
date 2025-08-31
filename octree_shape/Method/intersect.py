@@ -1,6 +1,31 @@
 import torch
+import numpy as np
 
 import octree_cpp
+
+
+def toMeshBoxOverlap(
+    vertices: torch.Tensor,  # (V, 3)
+    triangles: torch.Tensor,  # (T, 3)  int64
+    aabb: torch.Tensor,  # (6,)    [xmin,ymin,zmin,xmax,ymax,zmax]
+) -> torch.Tensor:
+    vertices_array = vertices.cpu().numpy()
+    triangles_array = triangles.cpu().numpy()
+    aabb_array = aabb.cpu().numpy()
+
+    box_center = (aabb_array[:3] + aabb_array[3:]) / 2.0
+    box_half_size = (aabb_array[3:] - aabb_array[:3]) / 2.0
+
+    triangles_warp = vertices_array[triangles_array].reshape(-1, 9)
+
+    overlap_triangles = octree_cpp.toMeshBoxOverlap(
+        box_center, box_half_size, triangles_warp
+    )
+
+    overlap_triangles_tensor = torch.from_numpy(np.asarray(overlap_triangles)).to(
+        triangles.device, dtype=triangles.dtype
+    )
+    return overlap_triangles_tensor
 
 
 def isMeshBoxOverlap(

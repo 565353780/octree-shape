@@ -1,4 +1,3 @@
-#include "BVHTree.h"
 #include "MeshBoxOverlap.h"
 #include "TriangleBoxOverlap.h"
 #include <pybind11/numpy.h> // 支持 NumPy 数组
@@ -35,6 +34,26 @@ int triBoxOverlap_wrapper(py::array_t<float> boxcenter_array,
   return triBoxOverlap(boxcenter_ptr, boxhalfsize_ptr, triverts_ptr);
 }
 
+std::vector<unsigned> toMeshBoxOverlap_wrapper(py::array_t<float> boxcenter,
+                                               py::array_t<float> boxhalfsize,
+                                               py::array_t<float> triverts) {
+  if (boxcenter.size() != 3 || boxhalfsize.size() != 3) {
+    throw std::runtime_error("boxcenter and boxhalfsize must have 3 elements.");
+  }
+
+  if (triverts.ndim() != 2 || triverts.shape(1) != 9) {
+    throw std::runtime_error("triverts must have shape (N, 9).");
+  }
+
+  const float *boxcenter_ptr = boxcenter.data();
+  const float *boxhalfsize_ptr = boxhalfsize.data();
+  const float (*triverts_ptr)[9] =
+      reinterpret_cast<const float (*)[9]>(triverts.data());
+  size_t N = triverts.shape(0);
+
+  return toMeshBoxOverlap(boxcenter_ptr, boxhalfsize_ptr, triverts_ptr, N);
+}
+
 int py_check_overlap(py::array_t<float> boxcenter,
                      py::array_t<float> boxhalfsize,
                      py::array_t<float> triangles) {
@@ -60,28 +79,14 @@ int py_check_overlap(py::array_t<float> boxcenter,
 PYBIND11_MODULE(octree_cpp, m) {
   m.doc() = "pybind11 octree cpp plugin";
 
-  m.def("outputOMPSetting", &outputOMPSetting, "outputOMPSetting");
-
   m.def("triBoxOverlap", &triBoxOverlap_wrapper,
         "Check if a triangle overlaps an AABB", py::arg("boxcenter"),
         py::arg("boxhalfsize"), py::arg("triverts"));
 
+  m.def("toMeshBoxOverlap", &toMeshBoxOverlap_wrapper, py::arg("boxcenter"),
+        py::arg("boxhalfsize"), py::arg("triverts"),
+        "Check mesh-box overlap and return intersecting triangle indices");
+
   m.def("isMeshBoxOverlap", &py_check_overlap,
         "Check if AABB overlaps any triangle");
-
-  py::class_<Vec3f>(m, "Vec3f")
-      .def(py::init<float, float, float>())
-      .def_readwrite("x", &Vec3f::x)
-      .def_readwrite("y", &Vec3f::y)
-      .def_readwrite("z", &Vec3f::z);
-
-  py::class_<AABB>(m, "AABB")
-      .def(py::init<Vec3f, Vec3f>())
-      .def_readwrite("lower", &AABB::lower)
-      .def_readwrite("upper", &AABB::upper);
-
-  py::class_<BVHWrapper>(m, "BVH")
-      .def(py::init<>())
-      .def("build", &BVHWrapper::build)
-      .def("query_aabb", &BVHWrapper::query_aabb);
 }

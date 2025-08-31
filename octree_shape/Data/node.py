@@ -3,6 +3,8 @@ import numpy as np
 from typing import Tuple
 from collections import deque
 
+from octree_shape.Method.intersect import toMeshBoxOverlap
+
 
 class Node:
     def __init__(
@@ -14,6 +16,8 @@ class Node:
         self.child_state = np.uint8(child_state)
 
         self.child_dict = {}
+
+        self.overlap_triangles = torch.empty(0)
         return
 
     def setId(self, id: str) -> bool:
@@ -123,6 +127,41 @@ class Node:
             print("\t updateChildState failed!")
             return False
 
+        return True
+
+    def updateOverlaps(
+        self,
+        vertices: torch.Tensor,
+        triangles: torch.Tensor,
+        device: str = "cpu",
+        dtype=torch.float64,
+    ) -> bool:
+        aabb = self.toAABBTensor().to(device, dtype=dtype)
+        self.overlap_triangles = toMeshBoxOverlap(vertices, triangles, aabb)
+        return True
+
+    def updateChilds(
+        self,
+        vertices: torch.Tensor,
+        triangles: torch.Tensor,
+        device: str = "cpu",
+        dtype=torch.float64,
+    ) -> bool:
+        for child_id in range(8):
+            aabb = Node(self.id + str(child_id)).toAABBTensor().to(device, dtype=dtype)
+
+            valid_triangles = triangles[self.overlap_triangles]
+
+            overlap_triangles = toMeshBoxOverlap(vertices, valid_triangles, aabb)
+
+            if len(overlap_triangles) == 0:
+                continue
+
+            self.updateChildState(child_id, True)
+
+            mapped_overlap_triangles = self.overlap_triangles[overlap_triangles]
+
+            self.child_dict[child_id].overlap_triangles = mapped_overlap_triangles
         return True
 
     def getShapeValue(self) -> np.ndarray:

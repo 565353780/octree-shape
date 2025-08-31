@@ -9,7 +9,11 @@ import octree_cpp
 
 from octree_shape.Data.node import Node
 from octree_shape.Method.mesh import normalizeMesh
-from octree_shape.Method.intersect import isMeshBoxOverlap, isMeshBoxOverlapTorch
+from octree_shape.Method.intersect import (
+    isMeshBoxOverlap,
+    isMeshBoxOverlapTorch,
+    toMeshBoxOverlap,
+)
 from octree_shape.Method.render import renderOctree
 
 
@@ -51,17 +55,10 @@ class OctreeBuilder(object):
             self.device, dtype=torch.int64
         )
 
-        vec_list = [
-            octree_cpp.Vec3f(v[0], v[1], v[2]) for v in normalized_mesh.vertices
-        ]
-
-        bvh = octree_cpp.BVH()
-        bvh.build(vec_list, normalized_mesh.faces)
-
         timestamp = time()
         current_depth = 0
 
-        octree_cpp.outputOMPSetting()
+        self.node.updateOverlaps(vertices, triangles, self.device, self.dtype)
 
         queue = deque([self.node])
         while queue:
@@ -78,31 +75,11 @@ class OctreeBuilder(object):
                 )
                 current_depth = node.depth
 
-            for child_id in "01234567":
-                aabb_min, aabb_max = Node(node.id + child_id).toAABB()
+            node.updateChilds(vertices, triangles, self.device, self.dtype)
 
-                query_box = octree_cpp.AABB(
-                    octree_cpp.Vec3f(*aabb_min), octree_cpp.Vec3f(*aabb_max)
-                )
-
-                hits = bvh.query_aabb(query_box)
-
-                if len(hits) == 0:
-                    continue
-
-                aabb = (
-                    Node(node.id + child_id)
-                    .toAABBTensor()
-                    .to(self.device, dtype=self.dtype)
-                )
-
-                hit_triangles = triangles[hits]
-
-                if isMeshBoxOverlap(vertices, hit_triangles, aabb):
-                    node.updateChildState(int(child_id), True)
-
-                    if node.depth < depth_max - 1:
-                        queue.append(node.child_dict[int(child_id)])
+            for child_node in node.child_dict.values():
+                if node.depth < depth_max - 1:
+                    queue.append(child_node)
 
         print(
             "finish solve node depth:",
