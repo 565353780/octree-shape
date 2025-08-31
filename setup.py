@@ -5,6 +5,10 @@ from platform import system
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import CUDAExtension, CppExtension, BuildExtension
 
+embree_include_dirs = [os.getcwd() + "/octree_shape/Lib/embree/build/install/include"]
+embree_library_dirs = [os.getcwd() + "/octree_shape/Lib/embree/build/install/lib"]
+embree_libraries = ["embree4"]
+
 SYSTEM = system()
 
 octree_root_path = os.getcwd() + "/octree_shape/Cpp/"
@@ -50,7 +54,9 @@ if torch.cuda.is_available():
     octree_module = CUDAExtension(
         name="octree_cpp",
         sources=octree_sources,
-        include_dirs=octree_include_dirs,
+        include_dirs=octree_include_dirs + embree_include_dirs,
+        library_dirs=embree_library_dirs,
+        libraries=embree_libraries,
         extra_compile_args=extra_compile_args,
     )
 
@@ -58,7 +64,9 @@ else:
     octree_module = CppExtension(
         name="octree_cpp",
         sources=octree_sources,
-        include_dirs=octree_include_dirs,
+        include_dirs=octree_include_dirs + embree_include_dirs,
+        library_dirs=embree_library_dirs,
+        libraries=embree_libraries,
         extra_compile_args=octree_extra_compile_args,
     )
 
