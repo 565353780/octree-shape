@@ -1,92 +1,56 @@
 #include "MeshBoxOverlap.h"
 #include "TriangleBoxOverlap.h"
-#include <pybind11/numpy.h> // 支持 NumPy 数组
+#include "node.h"
+#include <pybind11/chrono.h>
+#include <pybind11/complex.h>
+#include <pybind11/functional.h>
+#include <pybind11/iostream.h>
+#include <pybind11/numpy.h>
+#include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+#include <torch/extension.h>
 
 namespace py = pybind11;
-
-// 包装函数：将 Python 传递的缓冲区对象转换为 C++ 数组并调用 triBoxOverlap
-int triBoxOverlap_wrapper(py::array_t<float> boxcenter_array,
-                          py::array_t<float> boxhalfsize_array,
-                          py::array_t<float> triverts_array) {
-  // 获取 boxcenter 数组的缓冲区信息并验证
-  py::buffer_info info_center = boxcenter_array.request();
-  if (info_center.ndim != 1 || info_center.shape[0] != 3)
-    throw std::runtime_error("boxcenter must be a 1D array of size 3");
-  float *boxcenter_ptr = static_cast<float *>(info_center.ptr);
-
-  // 获取 boxhalfsize 数组的缓冲区信息并验证
-  py::buffer_info info_halfsize = boxhalfsize_array.request();
-  if (info_halfsize.ndim != 1 || info_halfsize.shape[0] != 3)
-    throw std::runtime_error("boxhalfsize must be a 1D array of size 3");
-  float *boxhalfsize_ptr = static_cast<float *>(info_halfsize.ptr);
-
-  // 获取 triverts 数组的缓冲区信息并验证
-  py::buffer_info info_triverts = triverts_array.request();
-  if (info_triverts.ndim != 2 || info_triverts.shape[0] != 3 ||
-      info_triverts.shape[1] != 3)
-    throw std::runtime_error("triverts must be a 2D array of shape 3x3");
-  float (*triverts_ptr)[3] = reinterpret_cast<float (*)[3]>(
-      info_triverts.ptr); // 注意 reinterpret_cast
-
-  // 调用原始函数
-  return triBoxOverlap(boxcenter_ptr, boxhalfsize_ptr, triverts_ptr);
-}
-
-std::vector<unsigned> toMeshBoxOverlap_wrapper(py::array_t<float> boxcenter,
-                                               py::array_t<float> boxhalfsize,
-                                               py::array_t<float> triverts) {
-  if (boxcenter.size() != 3 || boxhalfsize.size() != 3) {
-    throw std::runtime_error("boxcenter and boxhalfsize must have 3 elements.");
-  }
-
-  if (triverts.ndim() != 2 || triverts.shape(1) != 9) {
-    throw std::runtime_error("triverts must have shape (N, 9).");
-  }
-
-  const float *boxcenter_ptr = boxcenter.data();
-  const float *boxhalfsize_ptr = boxhalfsize.data();
-  const float (*triverts_ptr)[9] =
-      reinterpret_cast<const float (*)[9]>(triverts.data());
-  size_t N = triverts.shape(0);
-
-  return toMeshBoxOverlap(boxcenter_ptr, boxhalfsize_ptr, triverts_ptr, N);
-}
-
-int py_check_overlap(py::array_t<float> boxcenter,
-                     py::array_t<float> boxhalfsize,
-                     py::array_t<float> triangles) {
-
-  if (boxcenter.ndim() != 1 || boxcenter.shape(0) != 3)
-    throw std::runtime_error("boxcenter must be shape (3,)");
-
-  if (boxhalfsize.ndim() != 1 || boxhalfsize.shape(0) != 3)
-    throw std::runtime_error("boxhalfsize must be shape (3,)");
-
-  if (triangles.ndim() != 2 || triangles.shape(1) != 9)
-    throw std::runtime_error("triangles must be shape (N, 9)");
-
-  const float *box_c = boxcenter.data();
-  const float *box_h = boxhalfsize.data();
-  const float (*tris)[9] =
-      reinterpret_cast<const float (*)[9]>(triangles.data());
-  size_t N = triangles.shape(0);
-
-  return isMeshBoxOverlap(box_c, box_h, tris, N);
-}
 
 PYBIND11_MODULE(octree_cpp, m) {
   m.doc() = "pybind11 octree cpp plugin";
 
-  m.def("triBoxOverlap", &triBoxOverlap_wrapper,
-        "Check if a triangle overlaps an AABB", py::arg("boxcenter"),
-        py::arg("boxhalfsize"), py::arg("triverts"));
-
-  m.def("toMeshBoxOverlap", &toMeshBoxOverlap_wrapper, py::arg("boxcenter"),
-        py::arg("boxhalfsize"), py::arg("triverts"),
+  m.def("toMeshBoxOverlap", &toMeshBoxOverlap,
         "Check mesh-box overlap and return intersecting triangle indices");
 
-  m.def("isMeshBoxOverlap", &py_check_overlap,
-        "Check if AABB overlaps any triangle");
+  py::class_<Node, std::shared_ptr<Node>>(m, "Node")
+      .def(py::init<const std::string &, uint8_t>(), py::arg("id") = "",
+           py::arg("child_state") = 0)
+
+      // Methods
+      .def("setId", &Node::setId)
+      .def("setChildState", &Node::setChildState)
+      .def("setChildDict", &Node::setChildDict)
+      .def("updateChildState", &Node::updateChildState)
+      .def("addChild", &Node::addChild)
+      .def("removeChild", &Node::removeChild)
+      .def("updateOverlaps", &Node::updateOverlaps, py::arg("vertices"),
+           py::arg("triangles"), py::arg("device") = "cpu",
+           py::arg("dtype") = torch::kFloat64)
+      .def("updateChilds", &Node::updateChilds, py::arg("vertices"),
+           py::arg("triangles"), py::arg("device") = "cpu",
+           py::arg("dtype") = torch::kFloat64)
+
+      // Getters / Properties
+      .def("depth", &Node::depth)
+      .def("isLeaf", &Node::isLeaf)
+      .def("leafNum", &Node::leafNum)
+      .def("toChildIdxs", &Node::toChildIdxs)
+      .def("toAABB", &Node::toAABB)
+      .def("getLeafNodes", &Node::getLeafNodes)
+      .def("getShapeValue", &Node::getShapeValue)
+
+      // Fields
+      .def_readwrite("id", &Node::id)
+      .def_readwrite("child_state", &Node::child_state)
+      .def_readwrite("child_dict", &Node::child_dict)
+      .def_readwrite("overlap_triangles", &Node::overlap_triangles);
 }

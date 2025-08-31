@@ -5,15 +5,9 @@ from time import time
 from typing import Union
 from collections import deque
 
-import octree_cpp
+from octree_cpp import Node
 
-from octree_shape.Data.node import Node
 from octree_shape.Method.mesh import normalizeMesh
-from octree_shape.Method.intersect import (
-    isMeshBoxOverlap,
-    isMeshBoxOverlapTorch,
-    toMeshBoxOverlap,
-)
 from octree_shape.Method.render import renderOctree
 
 
@@ -63,7 +57,7 @@ class OctreeBuilder(object):
         queue = deque([self.node])
         while queue:
             node = queue.popleft()
-            if node.depth != current_depth:
+            if node.depth() != current_depth:
                 curr_time = time()
                 time_spend = curr_time - timestamp
                 timestamp = curr_time
@@ -73,12 +67,12 @@ class OctreeBuilder(object):
                     ", time spend:",
                     time_spend,
                 )
-                current_depth = node.depth
+                current_depth = node.depth()
 
             node.updateChilds(vertices, triangles, self.device, self.dtype)
 
             for child_node in node.child_dict.values():
-                if node.depth < depth_max - 1:
+                if node.depth() < depth_max - 1:
                     queue.append(child_node)
 
         print(
