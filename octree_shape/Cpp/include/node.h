@@ -1,13 +1,11 @@
 #pragma once
 
+#include "data.h"
 #include <array>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-using VerticesArray = std::vector<std::array<double, 3>>;   // 顶点列表，double3
-using TrianglesArray = std::vector<std::array<int64_t, 3>>; // 三角形索引列表
 
 class Node {
 public:
