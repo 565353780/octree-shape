@@ -35,12 +35,39 @@ int triBoxOverlap_wrapper(py::array_t<float> boxcenter_array,
   return triBoxOverlap(boxcenter_ptr, boxhalfsize_ptr, triverts_ptr);
 }
 
+int py_check_overlap(py::array_t<float> boxcenter,
+                     py::array_t<float> boxhalfsize,
+                     py::array_t<float> triangles) {
+
+  if (boxcenter.ndim() != 1 || boxcenter.shape(0) != 3)
+    throw std::runtime_error("boxcenter must be shape (3,)");
+
+  if (boxhalfsize.ndim() != 1 || boxhalfsize.shape(0) != 3)
+    throw std::runtime_error("boxhalfsize must be shape (3,)");
+
+  if (triangles.ndim() != 2 || triangles.shape(1) != 9)
+    throw std::runtime_error("triangles must be shape (N, 9)");
+
+  const float *box_c = boxcenter.data();
+  const float *box_h = boxhalfsize.data();
+  const float (*tris)[9] =
+      reinterpret_cast<const float (*)[9]>(triangles.data());
+  size_t N = triangles.shape(0);
+
+  return isMeshBoxOverlap(box_c, box_h, tris, N);
+}
+
 PYBIND11_MODULE(octree_cpp, m) {
   m.doc() = "pybind11 octree cpp plugin";
+
+  m.def("outputOMPSetting", &outputOMPSetting, "outputOMPSetting");
 
   m.def("triBoxOverlap", &triBoxOverlap_wrapper,
         "Check if a triangle overlaps an AABB", py::arg("boxcenter"),
         py::arg("boxhalfsize"), py::arg("triverts"));
+
+  m.def("isMeshBoxOverlap", &py_check_overlap,
+        "Check if AABB overlaps any triangle");
 
   py::class_<Vec3f>(m, "Vec3f")
       .def(py::init<float, float, float>())

@@ -5,11 +5,11 @@ from time import time
 from typing import Union
 from collections import deque
 
-from octree_cpp import BVH, Vec3f, AABB
+import octree_cpp
 
 from octree_shape.Data.node import Node
 from octree_shape.Method.mesh import normalizeMesh
-from octree_shape.Method.intersect import isMeshIntersectAABB
+from octree_shape.Method.intersect import isMeshBoxOverlap, isMeshBoxOverlapTorch
 from octree_shape.Method.render import renderOctree
 
 
@@ -51,27 +51,39 @@ class OctreeBuilder(object):
             self.device, dtype=torch.int64
         )
 
-        vec_list = [Vec3f(v[0], v[1], v[2]) for v in normalized_mesh.vertices]
+        vec_list = [
+            octree_cpp.Vec3f(v[0], v[1], v[2]) for v in normalized_mesh.vertices
+        ]
 
-        bvh = BVH()
+        bvh = octree_cpp.BVH()
         bvh.build(vec_list, normalized_mesh.faces)
 
-        output_freq = 1.0
-
         timestamp = time()
+        current_depth = 0
+
+        octree_cpp.outputOMPSetting()
 
         queue = deque([self.node])
         while queue:
             node = queue.popleft()
-            curr_time = time()
-            if curr_time - timestamp >= output_freq:
-                print("start solve node:", node.id, "with depth:", node.depth)
+            if node.depth != current_depth:
+                curr_time = time()
+                time_spend = curr_time - timestamp
                 timestamp = curr_time
+                print(
+                    "finish solve node depth:",
+                    current_depth,
+                    ", time spend:",
+                    time_spend,
+                )
+                current_depth = node.depth
 
             for child_id in "01234567":
                 aabb_min, aabb_max = Node(node.id + child_id).toAABB()
 
-                query_box = AABB(Vec3f(*aabb_min), Vec3f(*aabb_max))
+                query_box = octree_cpp.AABB(
+                    octree_cpp.Vec3f(*aabb_min), octree_cpp.Vec3f(*aabb_max)
+                )
 
                 hits = bvh.query_aabb(query_box)
 
@@ -86,12 +98,18 @@ class OctreeBuilder(object):
 
                 hit_triangles = triangles[hits]
 
-                if isMeshIntersectAABB(vertices, hit_triangles, aabb):
+                if isMeshBoxOverlap(vertices, hit_triangles, aabb):
                     node.updateChildState(int(child_id), True)
 
                     if node.depth < depth_max - 1:
                         queue.append(node.child_dict[int(child_id)])
 
+        print(
+            "finish solve node depth:",
+            current_depth,
+            ", time spend:",
+            time() - timestamp,
+        )
         return True
 
     def render(self) -> bool:

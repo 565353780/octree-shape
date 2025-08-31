@@ -21,12 +21,18 @@ octree_extra_compile_args = [
     "-DCMAKE_BUILD_TYPE=Release",
     "-D_GLIBCXX_USE_CXX11_ABI=0",
     "-DTORCH_USE_CUDA_DSA",
+    "-Xpreprocessor",
+    "-fopenmp",
 ]
+
+octree_extra_link_args = []
 
 if SYSTEM == "Darwin":
     octree_extra_compile_args.append("-std=c++17")
+    octree_extra_link_args.append("-lomp")
 elif SYSTEM == "Linux":
     octree_extra_compile_args.append("-std=c++17")
+    octree_extra_link_args.append("-fopenmp")
 
 if torch.cuda.is_available():
     cc = torch.cuda.get_device_capability()
@@ -58,6 +64,7 @@ if torch.cuda.is_available():
         library_dirs=embree_library_dirs,
         libraries=embree_libraries,
         extra_compile_args=extra_compile_args,
+        extra_link_args=octree_extra_link_args,
     )
 
 else:
@@ -68,6 +75,7 @@ else:
         library_dirs=embree_library_dirs,
         libraries=embree_libraries,
         extra_compile_args=octree_extra_compile_args,
+        extra_link_args=octree_extra_link_args,
     )
 
 setup(

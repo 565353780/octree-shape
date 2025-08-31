@@ -1,24 +1,31 @@
 import torch
 
+import octree_cpp
 
-@torch.no_grad()
-def isMeshIntersectAABB(
+
+def isMeshBoxOverlap(
     vertices: torch.Tensor,  # (V, 3)
     triangles: torch.Tensor,  # (T, 3)  int64
     aabb: torch.Tensor,  # (6,)    [xmin,ymin,zmin,xmax,ymax,zmax]
 ) -> bool:
-    """
-    box_center = (aabb[:3] + aabb[3:]) / 2.0
-    box_half_size = (aabb[3:] - aabb[:3]) / 2.0
+    vertices_array = vertices.cpu().numpy()
+    triangles_array = triangles.cpu().numpy()
+    aabb_array = aabb.cpu().numpy()
 
-    box_center = box_center.cpu().numpy()
-    box_half_size = box_half_size.cpu().numpy()
-    reorder_triangles = vertices[triangles].reshape(-1, 9).cpu().numpy()
+    box_center = (aabb_array[:3] + aabb_array[3:]) / 2.0
+    box_half_size = (aabb_array[3:] - aabb_array[:3]) / 2.0
 
-    result = octree_cpp.any_intersection(box_center, box_half_size, reorder_triangles)
-    return result
-    """
+    triangles_warp = vertices_array[triangles_array].reshape(-1, 9)
 
+    return octree_cpp.isMeshBoxOverlap(box_center, box_half_size, triangles_warp)
+
+
+@torch.no_grad()
+def isMeshBoxOverlapTorch(
+    vertices: torch.Tensor,  # (V, 3)
+    triangles: torch.Tensor,  # (T, 3)  int64
+    aabb: torch.Tensor,  # (6,)    [xmin,ymin,zmin,xmax,ymax,zmax]
+) -> bool:
     device = vertices.device
     dtype = vertices.dtype
 
