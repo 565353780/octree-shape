@@ -28,6 +28,17 @@ class Node:
         self.child_state = np.uint8(child_state)
         return True
 
+    def setChildDict(self, child_dict: dict) -> bool:
+        self.child_dict = child_dict
+
+        bools = [i in self.child_dict for i in range(8)]
+
+        byte = np.packbits(bools)[0]
+        # byte = np.packbits(bools[::-1])[0]
+
+        self.child_state = np.uint8(byte)
+        return True
+
     def set(self, id: str, child_state: np.uint8) -> bool:
         if not self.setId(id):
             print("[ERROR][Node::set]")
@@ -73,6 +84,17 @@ class Node:
     @property
     def isLeaf(self) -> bool:
         return not self.child_dict
+
+    @property
+    def leafNum(self) -> int:
+        if self.isLeaf:
+            return 1
+
+        leaf_num = 0
+        for child_node in self.child_dict.values():
+            leaf_num += child_node.leafNum
+
+        return leaf_num
 
     def toChildIdxs(self) -> np.ndarray:
         child_idxs = []
@@ -163,6 +185,16 @@ class Node:
 
             self.child_dict[child_id].overlap_triangles = mapped_overlap_triangles
         return True
+
+    def getLeafNodes(self) -> list:
+        if self.isLeaf:
+            return [self]
+
+        leaf_nodes = []
+        for child_node in self.child_dict.values():
+            leaf_nodes += child_node.getLeafNodes()
+
+        return leaf_nodes
 
     def getShapeValue(self) -> np.ndarray:
         shape_value = []
