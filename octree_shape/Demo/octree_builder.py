@@ -1,5 +1,4 @@
 import os
-import torch
 from octree_shape.Module.octree_builder import OctreeBuilder
 
 
@@ -7,13 +6,15 @@ def demo():
     home = os.environ["HOME"]
 
     mesh_file_path = home + "/chLi/Dataset/Famous/bunny-v2.ply"
-    depth_max = 8
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # mesh_file_path = home + "/chLi/Dataset/vae-eval/mesh/002.obj"
+    depth_max = 9
 
-    octree_builder = OctreeBuilder(mesh_file_path, depth_max, device)
+    octree_builder = OctreeBuilder(mesh_file_path, depth_max)
 
+    leaf_num = octree_builder.svo.root.leafNum()
     shape_value = octree_builder.svo.root.getShapeValue()
 
+    print("shape leaf num:", leaf_num)
     print("shape value size:", len(shape_value))
 
     octree_builder.render()

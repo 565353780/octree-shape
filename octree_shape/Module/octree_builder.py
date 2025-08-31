@@ -13,10 +13,7 @@ class OctreeBuilder(object):
         self,
         mesh_file_path: Union[str, None] = None,
         depth_max: int = 10,
-        device: str = "cpu",
     ) -> None:
-        self.device = device
-
         self.svo = SVO()
 
         if mesh_file_path is not None:
