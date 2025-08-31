@@ -1,7 +1,5 @@
 import torch
 
-import octree_cpp
-
 
 @torch.no_grad()
 def isMeshIntersectAABB(

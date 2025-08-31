@@ -6,8 +6,8 @@ def demo():
     home = os.environ["HOME"]
 
     mesh_file_path = home + "/chLi/Dataset/Famous/bunny-v2.ply"
-    depth_max = 8
-    device = "cuda"
+    depth_max = 7
+    device = "cpu"
 
     octree_builder = OctreeBuilder(mesh_file_path, depth_max, device)
 

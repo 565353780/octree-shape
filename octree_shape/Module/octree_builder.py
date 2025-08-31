@@ -4,6 +4,8 @@ import trimesh
 from typing import Union
 from collections import deque
 
+from octree_cpp import BVH, Vec3f, AABB
+
 from octree_shape.Data.node import Node
 from octree_shape.Method.mesh import normalizeMesh
 from octree_shape.Method.intersect import isMeshIntersectAABB
@@ -48,19 +50,35 @@ class OctreeBuilder(object):
             self.device, dtype=torch.int64
         )
 
+        vec_list = [Vec3f(v[0], v[1], v[2]) for v in normalized_mesh.vertices]
+
+        bvh = BVH()
+        bvh.build(vec_list, normalized_mesh.faces)
+
         queue = deque([self.node])
         while queue:
             node = queue.popleft()
             print("start solve node:", node.id, "with depth:", node.depth)
 
             for child_id in "01234567":
+                aabb_min, aabb_max = Node(node.id + child_id).toAABB()
+
+                query_box = AABB(Vec3f(*aabb_min), Vec3f(*aabb_max))
+
+                hits = bvh.query_aabb(query_box)
+
+                if len(hits) == 0:
+                    continue
+
                 aabb = (
                     Node(node.id + child_id)
                     .toAABBTensor()
                     .to(self.device, dtype=self.dtype)
                 )
 
-                if isMeshIntersectAABB(vertices, triangles, aabb):
+                hit_triangles = triangles[hits]
+
+                if isMeshIntersectAABB(vertices, hit_triangles, aabb):
                     node.updateChildState(int(child_id), True)
 
                     if node.depth < depth_max - 1:
