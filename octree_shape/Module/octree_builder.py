@@ -1,6 +1,7 @@
 import os
 import torch
 import trimesh
+from time import time
 from typing import Union
 from collections import deque
 
@@ -55,10 +56,17 @@ class OctreeBuilder(object):
         bvh = BVH()
         bvh.build(vec_list, normalized_mesh.faces)
 
+        output_freq = 1.0
+
+        timestamp = time()
+
         queue = deque([self.node])
         while queue:
             node = queue.popleft()
-            print("start solve node:", node.id, "with depth:", node.depth)
+            curr_time = time()
+            if curr_time - timestamp >= output_freq:
+                print("start solve node:", node.id, "with depth:", node.depth)
+                timestamp = curr_time
 
             for child_id in "01234567":
                 aabb_min, aabb_max = Node(node.id + child_id).toAABB()
