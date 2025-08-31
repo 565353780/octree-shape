@@ -1,4 +1,5 @@
 import os
+import torch
 from octree_shape.Module.octree_builder import OctreeBuilder
 
 
@@ -7,7 +8,7 @@ def demo():
 
     mesh_file_path = home + "/chLi/Dataset/Famous/bunny-v2.ply"
     depth_max = 7
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     octree_builder = OctreeBuilder(mesh_file_path, depth_max, device)
 
