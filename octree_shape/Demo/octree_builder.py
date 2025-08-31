@@ -14,8 +14,7 @@ def demo():
 
     shape_value = octree_builder.svo.root.getShapeValue()
 
-    print(shape_value)
-    print(shape_value.shape)
+    print("shape value size:", len(shape_value))
 
     octree_builder.render()
     return True

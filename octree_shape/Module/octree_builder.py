@@ -1,9 +1,6 @@
 import os
-import torch
 import trimesh
-from time import time
 from typing import Union
-from collections import deque
 
 from octree_cpp import SVO
 
@@ -40,14 +37,10 @@ class OctreeBuilder(object):
         mesh = trimesh.load(mesh_file_path)
 
         normalized_mesh = normalizeMesh(mesh)
-        vertices = torch.from_numpy(normalized_mesh.vertices).to(
-            self.device, dtype=torch.float64
-        )
-        triangles = torch.from_numpy(normalized_mesh.faces).to(
-            self.device, dtype=torch.int64
-        )
 
-        self.svo.loadMesh(vertices, triangles, depth_max)
+        self.svo.loadMesh(
+            normalized_mesh.vertices.tolist(), normalized_mesh.faces.tolist(), depth_max
+        )
         return True
 
     def render(self) -> bool:

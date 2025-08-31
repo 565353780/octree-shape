@@ -1,8 +1,9 @@
 #include "svo.h"
 #include <chrono>
+#include <deque>
 #include <iostream>
 
-SVO::SVO(int depth_max, const std::string &device) : device(device) {
+SVO::SVO(int depth_max_) : depth_max(depth_max_) {
   root = std::make_shared<Node>();
 }
 
@@ -11,51 +12,43 @@ bool SVO::reset() {
   return true;
 }
 
-bool SVO::loadMesh(const torch::Tensor &vertices,
-                   const torch::Tensor &triangles, const int &depth_max) {
-  auto verts = vertices.to(torch::Device(device));
-  auto tris = triangles.to(torch::Device(device));
-
-  auto timestamp = std::chrono::steady_clock::now();
-  int current_depth = 0;
-
-  root->updateOverlaps(verts, tris, device);
+bool SVO::loadMesh(const VerticesArray &vertices,
+                   const TrianglesArray &triangles, int max_depth) {
+  auto start = std::chrono::steady_clock::now();
+  root->updateOverlaps(vertices, triangles);
 
   std::deque<std::shared_ptr<Node>> queue{root};
+  int current_depth = 0;
 
   while (!queue.empty()) {
     auto node = queue.front();
     queue.pop_front();
 
-    if (node->depth() != current_depth) {
+    int node_depth = node->depth();
+    if (node_depth != current_depth) {
       auto now = std::chrono::steady_clock::now();
-      double duration =
-          std::chrono::duration_cast<std::chrono::duration<double>>(now -
-                                                                    timestamp)
+      double elapsed =
+          std::chrono::duration_cast<std::chrono::duration<double>>(now - start)
               .count();
-      timestamp = now;
-
-      std::cout << "finish solve node depth: " << current_depth
-                << ", time spend: " << duration << " s\n";
-
-      current_depth = node->depth();
+      std::cout << "Depth " << current_depth << " done in " << elapsed << "s\n";
+      start = now;
+      current_depth = node_depth;
     }
 
-    node->updateChilds(verts, tris, device);
+    node->updateChilds(vertices, triangles);
 
-    for (auto &[_, child] : node->child_dict) {
-      if (node->depth() < depth_max - 1) {
+    if (node_depth < max_depth - 1) {
+      for (const auto &[_, child] : node->child_dict) {
         queue.push_back(child);
       }
     }
   }
 
-  auto end = std::chrono::steady_clock::now();
-  double total =
-      std::chrono::duration_cast<std::chrono::duration<double>>(end - timestamp)
+  auto now = std::chrono::steady_clock::now();
+  double elapsed =
+      std::chrono::duration_cast<std::chrono::duration<double>>(now - start)
           .count();
-  std::cout << "finish solve node depth: " << current_depth
-            << ", time spend: " << total << " s\n";
+  std::cout << "Depth " << current_depth << " done in " << elapsed << "s\n";
 
   return true;
 }

@@ -1,44 +1,48 @@
 #pragma once
 
+#include <array>
+#include <memory>
 #include <string>
-#include <torch/extension.h>
 #include <unordered_map>
 #include <vector>
+
+using VerticesArray = std::vector<std::array<double, 3>>;   // 顶点列表，double3
+using TrianglesArray = std::vector<std::array<int64_t, 3>>; // 三角形索引列表
 
 class Node {
 public:
   Node(const std::string &id = "", uint8_t child_state = 0);
 
-  // Setters
-  void setId(const std::string &id);
+  // setters
+  void setId(const std::string &id_);
   void setChildState(uint8_t state);
   void setChildDict(const std::unordered_map<int, std::shared_ptr<Node>> &dict);
   void updateChildState(int child_idx, bool is_child_exist);
 
-  // Getters
+  // getters
   int depth() const;
   bool isLeaf() const;
   int leafNum() const;
-  torch::Tensor toChildIdxs() const;
-  torch::Tensor toAABB(double scale = 1.0) const;
+  std::vector<int> toChildIdxs() const;
+  std::array<double, 6> toAABB(double scale = 1.0) const;
   std::vector<std::shared_ptr<Node>> getLeafNodes() const;
-  torch::Tensor getShapeValue() const;
+  std::vector<uint8_t> getShapeValue() const;
 
-  // Tree manipulation
+  // tree manipulation
   void addChild(int child_idx);
   void removeChild(int child_idx);
-  void updateOverlaps(const torch::Tensor &vertices,
-                      const torch::Tensor &triangles,
-                      const std::string &device = "cpu");
 
-  void updateChilds(const torch::Tensor &vertices,
-                    const torch::Tensor &triangles,
-                    const std::string &device = "cpu");
+  // update overlaps using pure arrays
+  void updateOverlaps(const VerticesArray &vertices,
+                      const TrianglesArray &triangles);
 
-  // Public members (tensors only)
-  torch::Tensor overlap_triangles;
+  void updateChilds(const VerticesArray &vertices,
+                    const TrianglesArray &triangles);
 
-  // Public identifier and state
+  // Public members
+  std::vector<int64_t> overlap_triangles; // 重叠三角形索引列表
+
+  // identifier and state
   std::string id;
   uint8_t child_state;
   std::unordered_map<int, std::shared_ptr<Node>> child_dict;

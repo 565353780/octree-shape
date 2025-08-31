@@ -75,7 +75,7 @@ def toLeafO3DAABBMesh(
     leaf_aabb_mesh = o3d.geometry.TriangleMesh()
 
     if node.isLeaf():
-        aabb = node.toAABB(1.0).cpu().numpy()
+        aabb = node.toAABB(1.0)
         curr_leaf_aabb_mesh = toO3DAABBMesh(aabb[:3], aabb[3:], color)
         leaf_aabb_mesh += curr_leaf_aabb_mesh
         return leaf_aabb_mesh

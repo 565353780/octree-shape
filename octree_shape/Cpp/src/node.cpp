@@ -1,12 +1,12 @@
 #include "node.h"
 #include "MeshBoxOverlap.h"
 #include <bitset>
+#include <cmath>
 #include <deque>
-#include <sstream>
+#include <iostream>
 
-Node::Node(const std::string &id, uint8_t child_state)
-    : id(id), child_state(child_state),
-      overlap_triangles(torch::empty({0}, torch::kLong)) {}
+Node::Node(const std::string &id_, uint8_t child_state_)
+    : id(id_), child_state(child_state_) {}
 
 void Node::setId(const std::string &id_) { id = id_; }
 
@@ -56,73 +56,85 @@ int Node::leafNum() const {
   return count;
 }
 
-torch::Tensor Node::toChildIdxs() const {
-  std::vector<int64_t> indices;
+std::vector<int> Node::toChildIdxs() const {
+  std::vector<int> indices;
   for (int i = 0; i < 8; ++i) {
     if ((child_state >> i) & 1)
       indices.push_back(i);
   }
-  return torch::tensor(indices, torch::kLong);
+  return indices;
 }
 
-torch::Tensor Node::toAABB(double scale) const {
+std::array<double, 6> Node::toAABB(double scale) const {
   double half = scale / 2.0;
-  torch::Tensor min = torch::full({3}, -half, torch::kFloat64);
-  torch::Tensor max = torch::full({3}, half, torch::kFloat64);
+  std::array<double, 3> min = {-half, -half, -half};
+  std::array<double, 3> max = {half, half, half};
 
   for (char ch : id) {
-    torch::Tensor half_size = (max - min) / 2.0;
+    std::array<double, 3> half_size = {(max[0] - min[0]) / 2.0,
+                                       (max[1] - min[1]) / 2.0,
+                                       (max[2] - min[2]) / 2.0};
     int idx = ch - '0';
 
+    // 根据idx调整min max区间
     if (idx == 0 || idx == 2 || idx == 4 || idx == 6)
-      max[0] -= half_size[0].item<double>();
+      max[0] -= half_size[0];
     else
-      min[0] += half_size[0].item<double>();
+      min[0] += half_size[0];
 
     if (idx == 0 || idx == 1 || idx == 4 || idx == 5)
-      max[1] -= half_size[1].item<double>();
+      max[1] -= half_size[1];
     else
-      min[1] += half_size[1].item<double>();
+      min[1] += half_size[1];
 
     if (idx == 0 || idx == 1 || idx == 2 || idx == 3)
-      max[2] -= half_size[2].item<double>();
+      max[2] -= half_size[2];
     else
-      min[2] += half_size[2].item<double>();
+      min[2] += half_size[2];
   }
 
-  return torch::cat({min, max});
+  return {min[0], min[1], min[2], max[0], max[1], max[2]};
 }
 
 void Node::addChild(int child_idx) { updateChildState(child_idx, true); }
 
 void Node::removeChild(int child_idx) { updateChildState(child_idx, false); }
 
-void Node::updateOverlaps(const torch::Tensor &vertices,
-                          const torch::Tensor &triangles,
-                          const std::string &device) {
-  torch::Tensor aabb = toAABB().to(torch::Device(device), torch::kFloat64);
+void Node::updateOverlaps(const VerticesArray &vertices,
+                          const TrianglesArray &triangles) {
+  std::array<double, 6> aabb = toAABB();
   overlap_triangles = toMeshBoxOverlap(vertices, triangles, aabb);
 }
 
-void Node::updateChilds(const torch::Tensor &vertices,
-                        const torch::Tensor &triangles,
-                        const std::string &device) {
-  auto valid_triangles = triangles.index_select(0, overlap_triangles);
+void Node::updateChilds(const VerticesArray &vertices,
+                        const TrianglesArray &triangles) {
+  if (overlap_triangles.empty())
+    return;
+
+  // 筛选出当前节点重叠的三角形子集
+  TrianglesArray valid_triangles;
+  valid_triangles.reserve(overlap_triangles.size());
+  for (auto idx : overlap_triangles) {
+    valid_triangles.push_back(triangles[idx]);
+  }
 
   for (int child_id = 0; child_id < 8; ++child_id) {
     Node child_node(id + std::to_string(child_id));
-    torch::Tensor aabb =
-        child_node.toAABB().to(torch::Device(device), torch::kFloat64);
+    std::array<double, 6> aabb = child_node.toAABB();
 
-    torch::Tensor overlap = toMeshBoxOverlap(vertices, valid_triangles, aabb);
-
-    if (overlap.numel() == 0)
+    auto overlap = toMeshBoxOverlap(vertices, valid_triangles, aabb);
+    if (overlap.empty())
       continue;
 
     updateChildState(child_id, true);
 
-    torch::Tensor mapped = overlap_triangles.index_select(0, overlap);
-    child_dict[child_id]->overlap_triangles = mapped;
+    // 将相对索引映射回父级索引
+    std::vector<int64_t> mapped;
+    mapped.reserve(overlap.size());
+    for (auto sub_idx : overlap) {
+      mapped.push_back(overlap_triangles[sub_idx]);
+    }
+    child_dict[child_id]->overlap_triangles = std::move(mapped);
   }
 }
 
@@ -141,7 +153,7 @@ std::vector<std::shared_ptr<Node>> Node::getLeafNodes() const {
   return result;
 }
 
-torch::Tensor Node::getShapeValue() const {
+std::vector<uint8_t> Node::getShapeValue() const {
   std::deque<std::shared_ptr<const Node>> queue;
   std::vector<uint8_t> values;
 
@@ -161,5 +173,5 @@ torch::Tensor Node::getShapeValue() const {
     }
   }
 
-  return torch::tensor(values, torch::kUInt8);
+  return values;
 }
