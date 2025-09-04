@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <vector>
 
 using VerticesArray = std::vector<std::array<double, 3>>;
