@@ -24,7 +24,7 @@ public:
   std::vector<int> toChildIdxs() const;
   std::array<double, 6> toAABB(double scale = 1.0) const;
   std::vector<std::shared_ptr<Node>> getLeafNodes() const;
-  std::vector<uint8_t> getShapeValue() const;
+  std::vector<uint8_t> getShapeCode() const;
 
   // tree manipulation
   void addChild(int child_idx);

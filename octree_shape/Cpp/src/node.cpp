@@ -10,7 +10,12 @@ Node::Node(const std::string &id_, uint8_t child_state_)
 
 void Node::setId(const std::string &id_) { id = id_; }
 
-void Node::setChildState(uint8_t state) { child_state = state; }
+void Node::setChildState(uint8_t state) {
+  for (int i = 0; i < 8; ++i) {
+    const int is_child_exist = (state >> i) & 1;
+    updateChildState(i, is_child_exist);
+  }
+}
 
 void Node::setChildDict(
     const std::unordered_map<int, std::shared_ptr<Node>> &dict) {
@@ -153,7 +158,7 @@ std::vector<std::shared_ptr<Node>> Node::getLeafNodes() const {
   return result;
 }
 
-std::vector<uint8_t> Node::getShapeValue() const {
+std::vector<uint8_t> Node::getShapeCode() const {
   std::deque<std::shared_ptr<const Node>> queue;
   std::vector<uint8_t> values;
 
@@ -162,8 +167,10 @@ std::vector<uint8_t> Node::getShapeValue() const {
   while (!queue.empty()) {
     auto node = queue.front();
     queue.pop_front();
+
     if (node->isLeaf())
       continue;
+
     values.push_back(node->child_state);
 
     for (int i = 0; i < 8; ++i) {

@@ -196,7 +196,7 @@ class Node:
 
         return leaf_nodes
 
-    def getShapeValue(self) -> np.ndarray:
+    def getShapeCode(self) -> np.ndarray:
         shape_value = []
 
         queue = deque([self])

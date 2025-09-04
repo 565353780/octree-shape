@@ -25,6 +25,8 @@ class OctreeBuilder(object):
         return True
 
     def loadMeshFile(self, mesh_file_path: str, depth_max: int = 10) -> bool:
+        self.reset()
+
         if not os.path.exists(mesh_file_path):
             print("[ERROR][OctreeBuilder::loadMeshFile]")
             print("\t mesh file not exist!")
@@ -38,6 +40,12 @@ class OctreeBuilder(object):
         self.svo.loadMesh(
             normalized_mesh.vertices.tolist(), normalized_mesh.faces.tolist(), depth_max
         )
+        return True
+
+    def loadShapeCode(self, shape_code: list) -> bool:
+        self.reset()
+
+        self.svo.loadShapeCode(shape_code)
         return True
 
     def render(self) -> bool:

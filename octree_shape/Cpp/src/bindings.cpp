@@ -36,7 +36,7 @@ PYBIND11_MODULE(octree_cpp, m) {
       .def("toChildIdxs", &Node::toChildIdxs)
       .def("toAABB", &Node::toAABB, py::arg("scale") = 1.0)
       .def("getLeafNodes", &Node::getLeafNodes)
-      .def("getShapeValue", &Node::getShapeValue)
+      .def("getShapeCode", &Node::getShapeCode)
 
       // Fields
       .def_readwrite("id", &Node::id)
@@ -52,5 +52,6 @@ PYBIND11_MODULE(octree_cpp, m) {
       .def("reset", &SVO::reset)
       .def("loadMesh", &SVO::loadMesh, py::arg("vertices"),
            py::arg("triangles"), py::arg("depth_max") = 10)
+      .def("loadShapeCode", &SVO::loadShapeCode, py::arg("shape_code"))
       .def_readwrite("root", &SVO::root);
 }

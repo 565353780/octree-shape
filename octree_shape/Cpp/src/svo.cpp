@@ -52,3 +52,31 @@ bool SVO::loadMesh(const VerticesArray &vertices,
 
   return true;
 }
+
+bool SVO::loadShapeCode(const std::vector<std::uint8_t> &shape_code) {
+  std::deque<std::shared_ptr<Node>> queue{root};
+
+  size_t idx = 0;
+
+  while (!queue.empty()) {
+    if (idx >= shape_code.size()) {
+      break;
+    }
+
+    auto node = queue.front();
+    queue.pop_front();
+
+    node->setChildState(shape_code[idx]);
+    ++idx;
+
+    // 遍历子节点
+    for (int i = 0; i < 8; ++i) {
+      auto it = node->child_dict.find(i);
+      if (it != node->child_dict.end()) {
+        queue.push_back(it->second);
+      }
+    }
+  }
+
+  return true;
+}
