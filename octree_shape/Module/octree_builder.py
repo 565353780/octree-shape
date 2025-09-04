@@ -48,6 +48,13 @@ class OctreeBuilder(object):
         self.svo.loadShapeCode(shape_code)
         return True
 
+    @property
+    def leafNum(self) -> int:
+        return self.svo.root.leafNum()
+
+    def getShapeCode(self) -> list:
+        return self.svo.root.getShapeCode()
+
     def render(self) -> bool:
         renderOctree(self.svo.root)
         return True

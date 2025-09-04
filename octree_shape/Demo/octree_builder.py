@@ -11,8 +11,8 @@ def demo():
 
     octree_builder = OctreeBuilder(mesh_file_path, depth_max)
 
-    leaf_num = octree_builder.svo.root.leafNum()
-    shape_code = octree_builder.svo.root.getShapeCode()
+    leaf_num = octree_builder.leafNum
+    shape_code = octree_builder.getShapeCode()
 
     print("shape leaf num:", leaf_num)
     print("shape code size:", len(shape_code))
@@ -21,8 +21,8 @@ def demo():
 
     octree_builder.loadShapeCode(shape_code)
 
-    leaf_num = octree_builder.svo.root.leafNum()
-    shape_code = octree_builder.svo.root.getShapeCode()
+    leaf_num = octree_builder.leafNum
+    shape_code = octree_builder.getShapeCode()
 
     print("shape leaf num:", leaf_num)
     print("shape code size:", len(shape_code))
