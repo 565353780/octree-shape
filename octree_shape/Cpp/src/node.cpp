@@ -1,9 +1,7 @@
 #include "node.h"
 #include "MeshBoxOverlap.h"
 #include <bitset>
-#include <cmath>
 #include <deque>
-#include <iostream>
 
 Node::Node(const std::string &id_, uint8_t child_state_)
     : id(id_), child_state(child_state_) {}
