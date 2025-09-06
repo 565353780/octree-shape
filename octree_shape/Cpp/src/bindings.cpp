@@ -34,6 +34,7 @@ PYBIND11_MODULE(octree_cpp, m) {
       .def("isLeaf", &Node::isLeaf)
       .def("leafNum", &Node::leafNum)
       .def("toChildIdxs", &Node::toChildIdxs)
+      .def("toCenter", &Node::toCenter)
       .def("toAABB", &Node::toAABB, py::arg("scale") = 1.0)
       .def("getLeafNodes", &Node::getLeafNodes)
       .def("getShapeCode", &Node::getShapeCode)

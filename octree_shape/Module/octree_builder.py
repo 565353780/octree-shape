@@ -6,7 +6,7 @@ from typing import Union
 from octree_cpp import SVO
 
 from octree_shape.Method.mesh import normalizeMesh
-from octree_shape.Method.render import renderOctree
+from octree_shape.Method.render import renderOctree, renderOctreePcd
 
 
 class OctreeBuilder(object):
@@ -56,6 +56,10 @@ class OctreeBuilder(object):
     def getShapeCode(self) -> list:
         return self.svo.root.getShapeCode()
 
-    def render(self) -> bool:
+    def renderOctree(self) -> bool:
         renderOctree(self.svo.root)
+        return True
+
+    def renderOctreePcd(self) -> bool:
+        renderOctreePcd(self.svo.root)
         return True

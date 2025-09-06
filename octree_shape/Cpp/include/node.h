@@ -22,6 +22,7 @@ public:
   bool isLeaf() const;
   int leafNum() const;
   std::vector<int> toChildIdxs() const;
+  std::array<double, 3> toCenter() const;
   std::array<double, 6> toAABB(double scale = 1.0) const;
   std::vector<std::shared_ptr<Node>> getLeafNodes() const;
   std::vector<uint8_t> getShapeCode() const;

@@ -17,7 +17,7 @@ def demo():
     print("shape leaf num:", leaf_num)
     print("shape code size:", len(shape_code))
 
-    octree_builder.render()
+    # octree_builder.render()
 
     octree_builder.loadShapeCode(shape_code)
 
@@ -27,5 +27,6 @@ def demo():
     print("shape leaf num:", leaf_num)
     print("shape code size:", len(shape_code))
 
-    octree_builder.render()
+    octree_builder.renderOctree()
+    octree_builder.renderOctreePcd()
     return True

@@ -68,6 +68,34 @@ std::vector<int> Node::toChildIdxs() const {
   return indices;
 }
 
+std::array<double, 3> Node::toCenter() const {
+  double half = 0.5;
+  std::array<double, 3> center = {0, 0, 0};
+
+  for (char ch : id) {
+    half /= 2.0;
+
+    int idx = ch - '0';
+
+    if (idx == 0 || idx == 2 || idx == 4 || idx == 6)
+      center[0] -= half;
+    else
+      center[0] += half;
+
+    if (idx == 0 || idx == 1 || idx == 4 || idx == 5)
+      center[1] -= half;
+    else
+      center[1] += half;
+
+    if (idx == 0 || idx == 1 || idx == 2 || idx == 3)
+      center[2] -= half;
+    else
+      center[2] += half;
+  }
+
+  return center;
+}
+
 std::array<double, 6> Node::toAABB(double scale) const {
   double half = scale / 2.0;
   std::array<double, 3> min = {-half, -half, -half};

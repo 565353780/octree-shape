@@ -84,3 +84,33 @@ def toLeafO3DAABBMesh(
         leaf_aabb_mesh += toLeafO3DAABBMesh(child_node, color)
 
     return leaf_aabb_mesh
+
+
+def toLeafPoints(node: Node) -> np.ndarray:
+    if node.isLeaf():
+        center = node.toCenter()
+        leaf_points = [center]
+        return np.array(leaf_points)
+
+    leaf_points = []
+
+    for child_node in node.child_dict.values():
+        leaf_points.append(toLeafPoints(child_node))
+
+    leaf_points = np.vstack(leaf_points)
+    return leaf_points
+
+
+def toLeafPcd(
+    node: Node,
+    color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+) -> o3d.geometry.PointCloud:
+    leaf_pcd = o3d.geometry.PointCloud()
+
+    leaf_points = toLeafPoints(node)
+    leaf_colors = np.broadcast_to(color, (leaf_points.shape[0], 3))
+
+    leaf_pcd.points = o3d.utility.Vector3dVector(leaf_points)
+    leaf_pcd.colors = o3d.utility.Vector3dVector(leaf_colors)
+
+    return leaf_pcd
