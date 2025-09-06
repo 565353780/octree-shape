@@ -27,9 +27,8 @@ def demo():
     print("shape leaf num:", leaf_num)
     print("shape code size:", len(shape_code))
 
-    octree_builder.renderOctree()
-    # octree_builder.renderOctreePcd()
+    octree_builder.renderLeaf()
 
     for depth in range(1, depth_max + 1):
-        octree_builder.renderDepthOctree(depth)
+        octree_builder.renderDepth(depth)
     return True

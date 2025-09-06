@@ -1,5 +1,5 @@
 from octree_shape.Data.node import Node
-from octree_shape.Method.render import renderOctree
+from octree_shape.Method.render import renderNodes
 
 
 def demo():
@@ -17,5 +17,5 @@ def demo():
     print(aabb_min)
     print(aabb_max)
 
-    renderOctree(node)
+    renderNodes([node])
     return True

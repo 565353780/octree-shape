@@ -1,18 +1,14 @@
 import os
 import torch
 import trimesh
+import numpy as np
 from typing import Union
 
 from octree_cpp import SVO
 
 from octree_shape.Method.mesh import normalizeMesh
-from octree_shape.Method.node import getDepthNodes
-from octree_shape.Method.render import (
-    renderNodes,
-    renderNodesPcd,
-    renderOctree,
-    renderOctreePcd,
-)
+from octree_shape.Method.node import getDepthNodes, toNodeAABBs, toNodeCenters
+from octree_shape.Method.render import renderNodes, renderNodesPcd
 
 
 class OctreeBuilder(object):
@@ -59,26 +55,41 @@ class OctreeBuilder(object):
     def leafNum(self) -> int:
         return self.svo.root.leafNum()
 
+    def getLeafNodes(self) -> list:
+        return self.svo.root.getLeafNodes()
+
+    def getLeafCenters(self) -> np.ndarray:
+        leaf_nodes = self.getLeafNodes()
+        return toNodeCenters(leaf_nodes)
+
+    def getLeafAABBs(self) -> np.ndarray:
+        leaf_nodes = self.getLeafNodes()
+        return toNodeAABBs(leaf_nodes)
+
     def getDepthNodes(self, depth: int) -> list:
         return getDepthNodes(self.svo.root, depth)
+
+    def getDepthCenters(self, depth: int) -> np.ndarray:
+        depth_nodes = self.getDepthNodes(depth)
+        return toNodeCenters(depth_nodes)
+
+    def getDepthAABBs(self, depth: int) -> np.ndarray:
+        depth_nodes = self.getDepthNodes(depth)
+        return toNodeAABBs(depth_nodes)
 
     def getShapeCode(self) -> list:
         return self.svo.root.getShapeCode()
 
-    def renderOctree(self) -> bool:
-        renderOctree(self.svo.root)
-        return True
+    def renderLeaf(self, is_pcd: bool = False) -> bool:
+        leaf_nodes = self.getLeafNodes()
+        if is_pcd:
+            return renderNodesPcd(leaf_nodes)
+        else:
+            return renderNodes(leaf_nodes)
 
-    def renderOctreePcd(self) -> bool:
-        renderOctreePcd(self.svo.root)
-        return True
-
-    def renderDepthOctree(self, depth: int) -> bool:
-        node_list = getDepthNodes(self.svo.root, depth)
-        renderNodes(node_list)
-        return True
-
-    def renderDepthOctreePcd(self, depth: int) -> bool:
-        node_list = getDepthNodes(self.svo.root, depth)
-        renderNodesPcd(node_list)
-        return True
+    def renderDepth(self, depth: int, is_pcd: bool = False) -> bool:
+        depth_nodes = self.getDepthNodes(depth)
+        if is_pcd:
+            return renderNodesPcd(depth_nodes)
+        else:
+            return renderNodes(depth_nodes)
