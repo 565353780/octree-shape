@@ -6,7 +6,13 @@ from typing import Union
 from octree_cpp import SVO
 
 from octree_shape.Method.mesh import normalizeMesh
-from octree_shape.Method.render import renderOctree, renderOctreePcd
+from octree_shape.Method.node import getDepthNodes
+from octree_shape.Method.render import (
+    renderNodes,
+    renderNodesPcd,
+    renderOctree,
+    renderOctreePcd,
+)
 
 
 class OctreeBuilder(object):
@@ -53,6 +59,9 @@ class OctreeBuilder(object):
     def leafNum(self) -> int:
         return self.svo.root.leafNum()
 
+    def getDepthNodes(self, depth: int) -> list:
+        return getDepthNodes(self.svo.root, depth)
+
     def getShapeCode(self) -> list:
         return self.svo.root.getShapeCode()
 
@@ -62,4 +71,14 @@ class OctreeBuilder(object):
 
     def renderOctreePcd(self) -> bool:
         renderOctreePcd(self.svo.root)
+        return True
+
+    def renderDepthOctree(self, depth: int) -> bool:
+        node_list = getDepthNodes(self.svo.root, depth)
+        renderNodes(node_list)
+        return True
+
+    def renderDepthOctreePcd(self, depth: int) -> bool:
+        node_list = getDepthNodes(self.svo.root, depth)
+        renderNodesPcd(node_list)
         return True

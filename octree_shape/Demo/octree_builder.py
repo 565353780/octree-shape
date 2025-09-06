@@ -28,5 +28,8 @@ def demo():
     print("shape code size:", len(shape_code))
 
     octree_builder.renderOctree()
-    octree_builder.renderOctreePcd()
+    # octree_builder.renderOctreePcd()
+
+    for depth in range(1, depth_max + 1):
+        octree_builder.renderDepthOctree(depth)
     return True

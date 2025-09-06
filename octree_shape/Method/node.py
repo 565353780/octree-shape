@@ -4,6 +4,18 @@ import open3d as o3d
 from octree_shape.Data.node import Node
 
 
+def getDepthNodes(node: Node, depth: int) -> list:
+    if node.depth() == depth:
+        return [node]
+
+    depth_nodes = []
+
+    for child_node in node.child_dict.values():
+        depth_nodes += getDepthNodes(child_node, depth)
+
+    return depth_nodes
+
+
 def toO3DAABB(
     aabb_min: np.ndarray,
     aabb_max: np.ndarray,
