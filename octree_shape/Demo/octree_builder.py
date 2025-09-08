@@ -8,8 +8,17 @@ def demo():
     mesh_file_path = home + "/chLi/Dataset/Famous/bunny-v2.ply"
     # mesh_file_path = home + "/chLi/Dataset/vae-eval/mesh/002.obj"
     depth_max = 8
+    focus_center = [0, 0, 0.0]
+    focus_length = 0.0
+    normalize_scale = 0.99
 
-    octree_builder = OctreeBuilder(mesh_file_path, depth_max)
+    octree_builder = OctreeBuilder(
+        mesh_file_path,
+        depth_max,
+        focus_center,
+        focus_length,
+        normalize_scale,
+    )
 
     leaf_num = octree_builder.leafNum
     shape_code = octree_builder.getShapeCode()
