@@ -1,5 +1,6 @@
 import numpy as np
 import open3d as o3d
+from tqdm import tqdm
 
 from octree_shape.Method.node import toNodeAABBs, toNodeCenters
 
@@ -54,6 +55,28 @@ def toO3DAABBMesh(
     return mesh
 
 
+def toO3DBoxCentersMesh(
+    box_centers: np.ndarray,
+    box_length: float,
+    color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+) -> o3d.geometry.TriangleMesh:
+    aabbs_mesh = o3d.geometry.TriangleMesh()
+
+    half_length = 0.5 * box_length
+
+    print("[INFO][render::toO3DBoxCentersMesh]")
+    print("\t start collect box center mesh...")
+    for box_center in tqdm(box_centers):
+        aabb_min = box_center - half_length
+        aabb_max = box_center + half_length
+
+        aabb_mesh = toO3DAABBMesh(aabb_min, aabb_max, color)
+
+        aabbs_mesh += aabb_mesh
+
+    return aabbs_mesh
+
+
 def toO3DAABBsMesh(
     nodes: list,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
@@ -62,7 +85,9 @@ def toO3DAABBsMesh(
 
     aabbs = toNodeAABBs(nodes)
 
-    for aabb in aabbs:
+    print("[INFO][render::toO3DAABBsMesh]")
+    print("\t start collect node mesh...")
+    for aabb in tqdm(aabbs):
         curr_aabb_mesh = toO3DAABBMesh(aabb[:3], aabb[3:], color)
         aabb_mesh += curr_aabb_mesh
 
@@ -78,16 +103,24 @@ def renderNodes(
     return True
 
 
+def renderPoints(
+    points: np.ndarray,
+    color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+):
+    colors = np.broadcast_to(color, (points.shape[0], 3))
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+
+    o3d.visualization.draw_geometries([pcd])
+    return True
+
+
 def renderNodesPcd(
     nodes: list,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
 ) -> bool:
     centers = toNodeCenters(nodes)
-    colors = np.broadcast_to(color, (centers.shape[0], 3))
 
-    nodes_pcd = o3d.geometry.PointCloud()
-    nodes_pcd.points = o3d.utility.Vector3dVector(centers)
-    nodes_pcd.colors = o3d.utility.Vector3dVector(colors)
-
-    o3d.visualization.draw_geometries([nodes_pcd])
-    return True
+    return renderPoints(centers, color)

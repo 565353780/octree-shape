@@ -9,7 +9,7 @@ def demo():
     # mesh_file_path = home + "/chLi/Dataset/vae-eval/mesh/002.obj"
     depth_max = 8
     focus_center = [0, 0, 0.0]
-    focus_length = 0.0
+    focus_length = 1.0
     normalize_scale = 0.99
 
     octree_builder = OctreeBuilder(
@@ -26,8 +26,6 @@ def demo():
     print("shape leaf num:", leaf_num)
     print("shape code size:", len(shape_code))
 
-    # octree_builder.render()
-
     octree_builder.loadShapeCode(shape_code)
 
     leaf_num = octree_builder.leafNum
@@ -40,4 +38,8 @@ def demo():
 
     for depth in range(1, depth_max + 1):
         octree_builder.renderDepth(depth)
+
+    occ = octree_builder.getDepthOcc(8)
+    print("occ shape:", occ.shape)
+    octree_builder.renderDepthOcc(8)
     return True

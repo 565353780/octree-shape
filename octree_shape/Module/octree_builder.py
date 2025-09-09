@@ -2,13 +2,20 @@ import os
 import torch
 import trimesh
 import numpy as np
+import open3d as o3d
 from typing import Union
 
 from octree_cpp import SVO
 
 from octree_shape.Method.mesh import focusMesh
 from octree_shape.Method.node import getDepthNodes, toNodeAABBs, toNodeCenters
-from octree_shape.Method.render import renderNodes, renderNodesPcd
+from octree_shape.Method.occ import toCentersOcc, toOccCenters
+from octree_shape.Method.render import (
+    renderNodes,
+    renderNodesPcd,
+    renderPoints,
+    toO3DBoxCentersMesh,
+)
 
 
 class OctreeBuilder(object):
@@ -98,6 +105,11 @@ class OctreeBuilder(object):
         depth_nodes = self.getDepthNodes(depth)
         return toNodeAABBs(depth_nodes)
 
+    def getDepthOcc(self, depth: int) -> np.ndarray:
+        depth_centers = self.getDepthCenters(depth)
+        depth_resolution = 2**depth
+        return toCentersOcc(depth_centers, depth_resolution)
+
     def getShapeCode(self) -> list:
         return self.svo.root.getShapeCode()
 
@@ -114,3 +126,14 @@ class OctreeBuilder(object):
             return renderNodesPcd(depth_nodes)
         else:
             return renderNodes(depth_nodes)
+
+    def renderDepthOcc(self, depth: int, is_pcd: bool = False) -> bool:
+        depth_occ = self.getDepthOcc(depth)
+        depth_centers = toOccCenters(depth_occ)
+        depth_length = 0.5**depth
+        if is_pcd:
+            return renderPoints(depth_centers)
+        else:
+            depth_occ_box_mesh = toO3DBoxCentersMesh(depth_centers, depth_length)
+            o3d.visualization.draw_geometries([depth_occ_box_mesh])
+            return True
