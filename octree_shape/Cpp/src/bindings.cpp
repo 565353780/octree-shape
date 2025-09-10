@@ -52,7 +52,8 @@ PYBIND11_MODULE(octree_cpp, m) {
       .def(py::init<int>(), py::arg("depth_max") = 10)
       .def("reset", &SVO::reset)
       .def("loadMesh", &SVO::loadMesh, py::arg("vertices"),
-           py::arg("triangles"), py::arg("depth_max") = 10)
+           py::arg("triangles"), py::arg("depth_max") = 10,
+           py::arg("output_info") = false)
       .def("loadShapeCode", &SVO::loadShapeCode, py::arg("shape_code"))
       .def_readwrite("root", &SVO::root);
 }

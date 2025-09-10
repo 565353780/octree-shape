@@ -1,8 +1,32 @@
 import numpy as np
 import open3d as o3d
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from octree_shape.Method.node import toNodeAABBs, toNodeCenters
+
+
+def createRandomColors(color_num: int, color_map_id: str = "tab20") -> np.ndarray:
+    mode = "fixed-random"
+
+    if mode == "fixed-random":
+        rng = np.random.default_rng(seed=42)  # 固定种子
+        return rng.random((color_num, 3))
+
+    if mode == "random":
+        return np.random.rand(color_num, 3)
+
+    if mode == "cmap":
+        color_map = plt.get_cmap(color_map_id)
+
+        return np.array(
+            [color_map(i % len(color_map.colors))[:3] for i in range(color_num)]
+        )
+
+    print("[ERROR][render::createRandomColors]")
+    print("\t color mode not valid! will return random colors!")
+    print("\t mode:", mode)
+    return np.random.rand(color_num, 3)
 
 
 def toO3DAABBMesh(
@@ -77,6 +101,16 @@ def toO3DBoxCentersMesh(
     return aabbs_mesh
 
 
+def renderBoxCentersMesh(
+    box_centers: np.ndarray,
+    box_length: float,
+    color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+) -> bool:
+    aabbs_mesh = toO3DBoxCentersMesh(box_centers, box_length, color)
+    o3d.visualization.draw_geometries([aabbs_mesh])
+    return True
+
+
 def toO3DAABBsMesh(
     nodes: list,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
@@ -94,7 +128,7 @@ def toO3DAABBsMesh(
     return aabb_mesh
 
 
-def renderNodes(
+def renderNodesMesh(
     nodes: list,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
 ) -> bool:
@@ -103,24 +137,39 @@ def renderNodes(
     return True
 
 
-def renderPoints(
+def toPcd(
     points: np.ndarray,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
-):
+) -> o3d.geometry.PointCloud:
     colors = np.broadcast_to(color, (points.shape[0], 3))
 
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points)
     pcd.colors = o3d.utility.Vector3dVector(colors)
+    return pcd
 
+
+def renderPoints(
+    points: np.ndarray,
+    color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+) -> bool:
+    pcd = toPcd(points, color)
     o3d.visualization.draw_geometries([pcd])
     return True
+
+
+def toNodesPcd(
+    nodes: list,
+    color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+) -> o3d.geometry.PointCloud:
+    centers = toNodeCenters(nodes)
+    return toPcd(centers, color)
 
 
 def renderNodesPcd(
     nodes: list,
     color: np.ndarray = np.array([0.0, 0.0, 1.0]),
 ) -> bool:
-    centers = toNodeCenters(nodes)
-
-    return renderPoints(centers, color)
+    pcd = toNodesPcd(nodes, color)
+    o3d.visualization.draw_geometries([pcd])
+    return True

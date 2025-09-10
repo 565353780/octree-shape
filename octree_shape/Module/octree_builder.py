@@ -2,7 +2,6 @@ import os
 import torch
 import trimesh
 import numpy as np
-import open3d as o3d
 from typing import Union
 
 from octree_cpp import SVO
@@ -11,10 +10,10 @@ from octree_shape.Method.mesh import focusMesh
 from octree_shape.Method.node import getDepthNodes, toNodeAABBs, toNodeCenters
 from octree_shape.Method.occ import toCentersOcc, toOccCenters
 from octree_shape.Method.render import (
-    renderNodes,
+    renderBoxCentersMesh,
+    renderNodesMesh,
     renderNodesPcd,
     renderPoints,
-    toO3DBoxCentersMesh,
 )
 
 
@@ -26,12 +25,8 @@ class OctreeBuilder(object):
         focus_center: Union[np.ndarray, list] = [0, 0, 0],
         focus_length: float = 1.0,
         normalize_scale: float = 0.99,
+        output_info: bool = False,
     ) -> None:
-        self.depth_max = depth_max
-        self.focus_center = focus_center
-        self.focus_length = focus_length
-        self.normalize_scale = normalize_scale
-
         self.svo = SVO()
 
         if mesh_file_path is not None:
@@ -41,11 +36,33 @@ class OctreeBuilder(object):
                 focus_center,
                 focus_length,
                 normalize_scale,
+                output_info,
             )
         return
 
     def reset(self) -> bool:
         self.svo.reset()
+        return True
+
+    def loadMesh(
+        self,
+        mesh: trimesh.Trimesh,
+        depth_max: int = 8,
+        focus_center: Union[np.ndarray, list] = [0, 0, 0],
+        focus_length: float = 1.0,
+        normalize_scale: float = 0.99,
+        output_info: bool = False,
+    ) -> bool:
+        focus_mesh = focusMesh(mesh, focus_center, focus_length, normalize_scale)
+
+        self.reset()
+
+        self.svo.loadMesh(
+            focus_mesh.vertices.tolist(),
+            focus_mesh.faces.tolist(),
+            depth_max,
+            output_info,
+        )
         return True
 
     def loadMeshFile(
@@ -55,6 +72,7 @@ class OctreeBuilder(object):
         focus_center: Union[np.ndarray, list] = [0, 0, 0],
         focus_length: float = 1.0,
         normalize_scale: float = 0.99,
+        output_info: bool = False,
     ) -> bool:
         self.reset()
 
@@ -66,12 +84,9 @@ class OctreeBuilder(object):
 
         mesh = trimesh.load(mesh_file_path)
 
-        focus_mesh = focusMesh(mesh, focus_center, focus_length, normalize_scale)
-
-        self.svo.loadMesh(
-            focus_mesh.vertices.tolist(), focus_mesh.faces.tolist(), depth_max
+        return self.loadMesh(
+            mesh, depth_max, focus_center, focus_length, normalize_scale, output_info
         )
-        return True
 
     def loadShapeCode(self, shape_code: list) -> bool:
         self.reset()
@@ -118,14 +133,14 @@ class OctreeBuilder(object):
         if is_pcd:
             return renderNodesPcd(leaf_nodes)
         else:
-            return renderNodes(leaf_nodes)
+            return renderNodesMesh(leaf_nodes)
 
     def renderDepth(self, depth: int, is_pcd: bool = False) -> bool:
         depth_nodes = self.getDepthNodes(depth)
         if is_pcd:
             return renderNodesPcd(depth_nodes)
         else:
-            return renderNodes(depth_nodes)
+            return renderNodesMesh(depth_nodes)
 
     def renderDepthOcc(self, depth: int, is_pcd: bool = False) -> bool:
         depth_occ = self.getDepthOcc(depth)
@@ -134,6 +149,4 @@ class OctreeBuilder(object):
         if is_pcd:
             return renderPoints(depth_centers)
         else:
-            depth_occ_box_mesh = toO3DBoxCentersMesh(depth_centers, depth_length)
-            o3d.visualization.draw_geometries([depth_occ_box_mesh])
-            return True
+            return renderBoxCentersMesh(depth_centers, depth_length)

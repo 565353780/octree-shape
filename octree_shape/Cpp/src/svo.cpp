@@ -13,8 +13,10 @@ bool SVO::reset() {
 }
 
 bool SVO::loadMesh(const VerticesArray &vertices,
-                   const TrianglesArray &triangles, int max_depth) {
+                   const TrianglesArray &triangles, const int &max_depth,
+                   const bool &output_info) {
   auto start = std::chrono::steady_clock::now();
+
   root->updateOverlaps(vertices, triangles);
 
   std::deque<std::shared_ptr<Node>> queue{root};
@@ -26,12 +28,16 @@ bool SVO::loadMesh(const VerticesArray &vertices,
 
     int node_depth = node->depth();
     if (node_depth != current_depth) {
-      auto now = std::chrono::steady_clock::now();
-      double elapsed =
-          std::chrono::duration_cast<std::chrono::duration<double>>(now - start)
-              .count();
-      std::cout << "Depth " << current_depth << " done in " << elapsed << "s\n";
-      start = now;
+      if (output_info) {
+        auto now = std::chrono::steady_clock::now();
+        double elapsed =
+            std::chrono::duration_cast<std::chrono::duration<double>>(now -
+                                                                      start)
+                .count();
+        std::cout << "Depth " << current_depth << " done in " << elapsed
+                  << "s\n";
+        start = now;
+      }
       current_depth = node_depth;
     }
 
@@ -44,11 +50,13 @@ bool SVO::loadMesh(const VerticesArray &vertices,
     }
   }
 
-  auto now = std::chrono::steady_clock::now();
-  double elapsed =
-      std::chrono::duration_cast<std::chrono::duration<double>>(now - start)
-          .count();
-  std::cout << "Depth " << current_depth << " done in " << elapsed << "s\n";
+  if (output_info) {
+    auto now = std::chrono::steady_clock::now();
+    double elapsed =
+        std::chrono::duration_cast<std::chrono::duration<double>>(now - start)
+            .count();
+    std::cout << "Depth " << current_depth << " done in " << elapsed << "s\n";
+  }
 
   return true;
 }

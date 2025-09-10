@@ -12,7 +12,7 @@ public:
   bool reset();
 
   bool loadMesh(const VerticesArray &vertices, const TrianglesArray &triangles,
-                int depth_max = 10);
+                const int &depth_max = 10, const bool &output_info = false);
 
   bool loadShapeCode(const std::vector<std::uint8_t> &shape_code);
 

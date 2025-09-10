@@ -11,6 +11,7 @@ def demo():
     focus_center = [0, 0, 0.0]
     focus_length = 1.0
     normalize_scale = 0.99
+    output_info = True
 
     octree_builder = OctreeBuilder(
         mesh_file_path,
@@ -18,6 +19,7 @@ def demo():
         focus_center,
         focus_length,
         normalize_scale,
+        output_info,
     )
 
     leaf_num = octree_builder.leafNum
