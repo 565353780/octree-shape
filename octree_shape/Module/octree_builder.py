@@ -94,6 +94,20 @@ class OctreeBuilder(object):
         self.svo.loadShapeCode(shape_code)
         return True
 
+    def loadShapeCodeFile(self, shape_code_file_path: str) -> bool:
+        if not os.path.exists(shape_code_file_path):
+            print("[ERROR][OctreeBuilder::loadShapeCodeFile]")
+            print("\t shape code file not exist!")
+            print("\t shape_code_file_path:", shape_code_file_path)
+            return False
+
+        self.reset()
+
+        shape_code = np.load(shape_code_file_path)
+
+        self.svo.loadShapeCode(shape_code)
+        return True
+
     @property
     def leafNum(self) -> int:
         return self.svo.root.leafNum()
