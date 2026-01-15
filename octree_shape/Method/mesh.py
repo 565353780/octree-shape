@@ -1,6 +1,6 @@
 import trimesh
 import numpy as np
-from typing import Union
+from typing import Union, Optional
 
 
 def normalizeMesh(
@@ -28,12 +28,15 @@ def focusMesh(
     mesh: trimesh.Trimesh,
     focus_center: Union[np.ndarray, list] = [0, 0, 0],
     focus_length: float = 1.0,
-    normalize_scale: float = 0.99,
+    normalize_scale: Optional[float]=None,
 ) -> trimesh.Trimesh:
     if isinstance(focus_center, list):
         focus_center = np.array(focus_center)
 
-    normalized_mesh = normalizeMesh(mesh, normalize_scale)
+    if normalize_scale is not None:
+        normalized_mesh = normalizeMesh(mesh, normalize_scale)
+    else:
+        normalized_mesh = mesh
 
     vertices = normalized_mesh.vertices
 

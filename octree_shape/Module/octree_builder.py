@@ -1,8 +1,8 @@
 import os
-import torch
 import trimesh
 import numpy as np
-from typing import Union
+import open3d as o3d
+from typing import Union, Optional
 
 from octree_cpp import SVO
 
@@ -10,6 +10,8 @@ from octree_shape.Method.mesh import focusMesh
 from octree_shape.Method.node import getDepthNodes, toNodeAABBs, toNodeCenters
 from octree_shape.Method.occ import toCentersOcc, toOccCenters
 from octree_shape.Method.render import (
+    toNodesPcd,
+    toO3DAABBsMesh,
     renderBoxCentersMesh,
     renderNodesMesh,
     renderNodesPcd,
@@ -20,18 +22,27 @@ from octree_shape.Method.render import (
 class OctreeBuilder(object):
     def __init__(
         self,
-        mesh_file_path: Union[str, None] = None,
+        mesh: Optional[Union[str, trimesh.Trimesh]]=None,
         depth_max: int = 8,
         focus_center: Union[np.ndarray, list] = [0, 0, 0],
         focus_length: float = 1.0,
-        normalize_scale: float = 0.99,
+        normalize_scale: Optional[float]=None,
         output_info: bool = False,
     ) -> None:
         self.svo = SVO()
 
-        if mesh_file_path is not None:
+        if isinstance(mesh, str):
             self.loadMeshFile(
-                mesh_file_path,
+                mesh,
+                depth_max,
+                focus_center,
+                focus_length,
+                normalize_scale,
+                output_info,
+            )
+        elif isinstance(mesh, trimesh.Trimesh):
+            self.loadMesh(
+                mesh,
                 depth_max,
                 focus_center,
                 focus_length,
@@ -50,7 +61,7 @@ class OctreeBuilder(object):
         depth_max: int = 8,
         focus_center: Union[np.ndarray, list] = [0, 0, 0],
         focus_length: float = 1.0,
-        normalize_scale: float = 0.99,
+        normalize_scale: Optional[float]=None,
         output_info: bool = False,
     ) -> bool:
         focus_mesh = focusMesh(mesh, focus_center, focus_length, normalize_scale)
@@ -71,7 +82,7 @@ class OctreeBuilder(object):
         depth_max: int = 8,
         focus_center: Union[np.ndarray, list] = [0, 0, 0],
         focus_length: float = 1.0,
-        normalize_scale: float = 0.99,
+        normalize_scale: Optional[float]=None,
         output_info: bool = False,
     ) -> bool:
         self.reset()
@@ -164,3 +175,17 @@ class OctreeBuilder(object):
             return renderPoints(depth_centers)
         else:
             return renderBoxCentersMesh(depth_centers, depth_length)
+
+    @staticmethod
+    def toNodesPcd(
+        nodes: list,
+        color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+    ) -> o3d.geometry.PointCloud:
+        return toNodesPcd(nodes, color)
+
+    @staticmethod
+    def toO3DAABBsMesh(
+        nodes: list,
+        color: np.ndarray = np.array([0.0, 0.0, 1.0]),
+    ) -> o3d.geometry.TriangleMesh:
+        return toO3DAABBsMesh(nodes, color)
