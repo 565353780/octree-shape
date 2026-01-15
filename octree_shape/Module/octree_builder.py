@@ -6,6 +6,7 @@ from typing import Union, Optional
 
 from octree_cpp import SVO
 
+from octree_shape.Method.io import loadMeshFile
 from octree_shape.Method.mesh import focusMesh
 from octree_shape.Method.node import getDepthNodes, toNodeAABBs, toNodeCenters
 from octree_shape.Method.occ import toCentersOcc, toOccCenters
@@ -93,7 +94,7 @@ class OctreeBuilder(object):
             print("\t mesh_file_path:", mesh_file_path)
             return False
 
-        mesh = trimesh.load(mesh_file_path)
+        mesh = loadMeshFile(mesh_file_path)
 
         return self.loadMesh(
             mesh, depth_max, focus_center, focus_length, normalize_scale, output_info
