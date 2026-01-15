@@ -21,4 +21,4 @@ rm ../octree-shape/*.so
 python setup.py build_ext --inplace
 mv compile_commands.json build
 
-pip install .
+python setup.py install

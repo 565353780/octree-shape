@@ -9,6 +9,6 @@ cd ../octree-shape
 pip install -U numpy trimesh
 
 pip3 install -U torch torchvision \
-  --index-url https://download.pytorch.org/whl/cu128
+  --index-url https://download.pytorch.org/whl/cu124
 
 ./compile.sh
